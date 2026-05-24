@@ -11,6 +11,7 @@ require_relative "internal/transport"
 require_relative "internal/uuid"
 require_relative "internal/wire"
 require_relative "render"
+require_relative "documents"
 
 module PoliPage
   # Main entry point — orchestrates retries, fires hooks, and delegates HTTP
@@ -25,7 +26,7 @@ module PoliPage
   class Client
     include Internal::PresignedFetch
 
-    attr_reader :base_url, :max_retries, :retry_delay, :timeout, :render
+    attr_reader :base_url, :max_retries, :retry_delay, :timeout, :render, :documents
 
     def initialize(api_key:, base_url: Internal::Constants::DEFAULT_BASE_URL,
                    max_retries: Internal::Constants::DEFAULT_MAX_RETRIES,
@@ -44,6 +45,7 @@ module PoliPage
       @on_error    = on_error
       @transport   = Internal::Transport.new(base_url: base_url, timeout: timeout)
       @render      = Resources::Render.new(self)
+      @documents   = Resources::Documents.new(self)
     end
 
     # Execute a POST request against `path` with `body` (snake_case hash;
@@ -56,6 +58,34 @@ module PoliPage
       response = run_with_retry(method: :post, path: path, body: wire_body,
                                 idempotency_key: idempotency_key || Internal::UUID.generate)
       parse_json_response(response)
+    end
+
+    # Execute a GET request against `path`. Returns the parsed
+    # snake_case-symbol-keyed Hash on 2xx, or raises a `PoliPage::Error`.
+    #
+    # @api private
+    def execute_get(path)
+      response = run_with_retry(method: :get, path: path, body: nil, idempotency_key: nil)
+      parse_json_response(response)
+    end
+
+    # Execute a DELETE request against `path`. Returns nil on 2xx; the
+    # response body is ignored. Raises `PoliPage::Error` on non-2xx.
+    #
+    # @api private
+    def execute_delete(path)
+      run_with_retry(method: :delete, path: path, body: nil, idempotency_key: nil)
+      nil
+    end
+
+    # Execute a GET request and return the raw `Internal::Transport::Response`
+    # (body + headers) without JSON parsing. Used by `documents.preview` which
+    # gets `text/html` directly plus the page count via the
+    # `X-Document-Page-Count` response header.
+    #
+    # @api private
+    def execute_get_raw(path)
+      run_with_retry(method: :get, path: path, body: nil, idempotency_key: nil)
     end
 
     private

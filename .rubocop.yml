@@ -104,6 +104,7 @@ RSpec/BeforeAfterAll:
 RSpec/SubjectStub:
   Exclude:
     - "spec/poli_page/client_spec.rb"
+    - "spec/poli_page/client_get_delete_spec.rb"
 
 # Public SDK methods deliberately take many keyword arguments — every render
 # input field is its own kwarg by spec design (sdk-ruby-plan.md §9.1). The
