@@ -99,4 +99,116 @@ RSpec.describe PoliPage::Resources::Render do
         .to raise_error(PoliPage::RateLimitError)
     end
   end
+
+  describe "#document" do
+    let(:descriptor_json) do
+      JSON.generate(
+        documentId: "doc_abc123", organizationId: "org_xyz",
+        projectId: "proj_42", projectSlug: "billing",
+        templateId: "tpl_invoice_v1", templateSlug: "invoice",
+        version: "1.0.0", environment: "live", apiKeyId: "key_live_abc",
+        format: "A4", orientation: "portrait", locale: "en-US",
+        pageCount: 2, sizeBytes: 38_421,
+        createdAt: "2026-04-30T19:45:22Z", metadata: {},
+        expiresAt: "2026-04-30T20:00:22Z",
+        presignedPdfUrl: "https://s3.example/presigned/x.pdf"
+      )
+    end
+
+    it "POSTs to /v1/render and returns a DocumentDescriptor" do
+      stub_request(:post, "https://api.poli.page/v1/render")
+        .with(body: hash_including("project" => "billing", "template" => "invoice"))
+        .to_return(status: 200, body: descriptor_json)
+
+      desc = client.render.document(project: "billing", template: "invoice",
+                                    version: "1.0.0", data: { invoice_number: "INV-001" })
+
+      expect(desc).to be_a(PoliPage::DocumentDescriptor)
+      expect(desc.document_id).to eq("doc_abc123")
+      expect(desc.presigned_pdf_url).to eq("https://s3.example/presigned/x.pdf")
+      expect(desc.page_count).to eq(2)
+    end
+
+    it "attaches the client back-reference so #download_pdf works" do
+      stub_request(:post, "https://api.poli.page/v1/render").to_return(status: 200, body: descriptor_json)
+      stub_request(:get, "https://s3.example/presigned/x.pdf").to_return(status: 200, body: "%PDF-1.4 stub")
+
+      desc = client.render.document(project: "billing", template: "invoice",
+                                    version: "1.0.0", data: {})
+      expect(desc.download_pdf).to eq("%PDF-1.4 stub")
+    end
+  end
+
+  describe "#pdf" do
+    let(:descriptor_json) do
+      JSON.generate(
+        documentId: "doc_abc123", organizationId: "org_xyz",
+        projectId: "proj_42", projectSlug: "billing",
+        templateId: "tpl_invoice_v1", templateSlug: "invoice",
+        version: "1.0.0", environment: "live", apiKeyId: "key_live_abc",
+        format: "A4", orientation: "portrait", locale: "en-US",
+        pageCount: 2, sizeBytes: 38_421,
+        createdAt: "2026-04-30T19:45:22Z", metadata: {},
+        expiresAt: "2026-04-30T20:00:22Z",
+        presignedPdfUrl: "https://s3.example/presigned/x.pdf"
+      )
+    end
+
+    it "POSTs /v1/render, fetches the presigned URL, and returns the bytes" do
+      stub_render = stub_request(:post, "https://api.poli.page/v1/render")
+                    .to_return(status: 200, body: descriptor_json)
+      stub_pdf = stub_request(:get, "https://s3.example/presigned/x.pdf")
+                 .to_return(status: 200, body: "%PDF-1.4 stub")
+
+      pdf = client.render.pdf(project: "billing", template: "invoice", version: "1.0.0", data: {})
+      expect(pdf).to eq("%PDF-1.4 stub")
+      expect(stub_render).to have_been_requested
+      expect(stub_pdf).to have_been_requested
+    end
+
+    it "raises DownloadError if the presigned fetch fails" do
+      stub_request(:post, "https://api.poli.page/v1/render").to_return(status: 200, body: descriptor_json)
+      stub_request(:get, "https://s3.example/presigned/x.pdf").to_return(status: 403, body: "<Error/>")
+
+      expect { client.render.pdf(project: "billing", template: "invoice", version: "1.0.0", data: {}) }
+        .to raise_error(PoliPage::DownloadError)
+    end
+  end
+
+  describe "#pdf_stream" do
+    let(:descriptor_json) do
+      JSON.generate(
+        documentId: "doc_abc123", organizationId: "org_xyz",
+        projectId: "proj_42", projectSlug: "billing",
+        templateId: "tpl_invoice_v1", templateSlug: "invoice",
+        version: "1.0.0", environment: "live", apiKeyId: "key_live_abc",
+        format: "A4", orientation: "portrait", locale: "en-US",
+        pageCount: 2, sizeBytes: 38_421,
+        createdAt: "2026-04-30T19:45:22Z", metadata: {},
+        expiresAt: "2026-04-30T20:00:22Z",
+        presignedPdfUrl: "https://s3.example/presigned/x.pdf"
+      )
+    end
+
+    before do
+      stub_request(:post, "https://api.poli.page/v1/render").to_return(status: 200, body: descriptor_json)
+      stub_request(:get, "https://s3.example/presigned/x.pdf").to_return(status: 200, body: "AAAABBBBCCCC")
+    end
+
+    it "yields the PDF body in chunks when a block is given" do
+      collected = +""
+      client.render.pdf_stream(project: "billing", template: "invoice", version: "1.0.0", data: {}) do |chunk|
+        collected << chunk
+      end
+      expect(collected).to eq("AAAABBBBCCCC")
+    end
+
+    it "returns an Enumerator when called without a block" do
+      enum = client.render.pdf_stream(project: "billing", template: "invoice", version: "1.0.0", data: {})
+      expect(enum).to be_a(Enumerator)
+      collected = +""
+      enum.each { |chunk| collected << chunk }
+      expect(collected).to eq("AAAABBBBCCCC")
+    end
+  end
 end

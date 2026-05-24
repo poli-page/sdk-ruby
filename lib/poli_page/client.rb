@@ -6,6 +6,7 @@ require_relative "errors"
 require_relative "retry_event"
 require_relative "internal/constants"
 require_relative "internal/http"
+require_relative "internal/presigned_fetch"
 require_relative "internal/transport"
 require_relative "internal/uuid"
 require_relative "internal/wire"
@@ -22,6 +23,8 @@ module PoliPage
   # request opens its own `Net::HTTP` connection. A single `Client` may be
   # safely shared across threads.
   class Client
+    include Internal::PresignedFetch
+
     attr_reader :base_url, :max_retries, :retry_delay, :timeout, :render
 
     def initialize(api_key:, base_url: Internal::Constants::DEFAULT_BASE_URL,

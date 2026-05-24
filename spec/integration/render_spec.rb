@@ -40,4 +40,30 @@ RSpec.describe "PoliPage::Client#render.preview (integration)" do
     expect(result.total_pages).to be >= 1
     expect(result.environment).to(satisfy { |e| %w[sandbox live].include?(e) })
   end
+
+  it "render.document returns a usable DocumentDescriptor" do
+    desc = client.render.document(project: project, template: template, version: version,
+                                  data: { name: "Ada" })
+    expect(desc).to be_a(PoliPage::DocumentDescriptor)
+    expect(desc.document_id).to be_a(String)
+    expect(desc.presigned_pdf_url).to start_with("http")
+    expect(desc.page_count).to be >= 1
+  end
+
+  it "render.pdf returns the PDF bytes (header %PDF-)" do
+    pdf = client.render.pdf(project: project, template: template, version: version,
+                            data: { name: "Ada" })
+    expect(pdf).to be_a(String)
+    expect(pdf.bytes.size).to be > 1_000
+    expect(pdf[0, 5]).to eq("%PDF-")
+  end
+
+  it "render.pdf_stream yields the same bytes as render.pdf (block form)" do
+    collected = +""
+    collected.force_encoding(Encoding::ASCII_8BIT)
+    client.render.pdf_stream(project: project, template: template, version: version,
+                             data: { name: "Ada" }) { |chunk| collected << chunk }
+    expect(collected[0, 5]).to eq("%PDF-")
+    expect(collected.bytes.size).to be > 1_000
+  end
 end
