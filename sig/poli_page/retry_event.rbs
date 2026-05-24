@@ -1,0 +1,9 @@
+module PoliPage
+  class RetryEvent < Data
+    attr_reader attempt: Integer
+    attr_reader delay: Numeric
+    attr_reader reason: PoliPage::Error
+
+    def self.new: (attempt: Integer, delay: Numeric, reason: PoliPage::Error) -> RetryEvent
+  end
+end

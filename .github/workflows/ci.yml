@@ -9,11 +9,10 @@ on:
 permissions:
   contents: read
 
-# TODO(phase-1+): once `sig/*.rbs` files start landing, add the following steps to
-# every matrix job (per sdk-ruby-plan.md §16.1):
-#   - run: bundle exec rbs validate
-#   - run: bundle exec steep check
-#   - run: bundle exec yard --fail-on-warning
+# Steep is intentionally not run in CI — see Rakefile. The published RBS
+# sigs cover only the public surface and Steep's strict mode is noisy
+# about internal-namespace references. `rbs validate` (RBS syntax check)
+# does run, and devs may opt into `bundle exec steep check` locally.
 # TODO(phase-0 pre-flight): pin `ruby/setup-ruby` to a 40-char commit SHA
 # (currently a floating tag) per sdk-ruby-plan.md §16.6 workflow hardening.
 
@@ -47,6 +46,12 @@ jobs:
 
       - name: RuboCop
         run: bundle exec rubocop
+
+      - name: RBS validate
+        run: bundle exec rbs validate
+
+      - name: YARD (fail on warning)
+        run: bundle exec yard --fail-on-warning
 
       - name: RSpec (unit)
         run: bundle exec rspec spec

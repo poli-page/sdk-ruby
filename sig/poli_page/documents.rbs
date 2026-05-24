@@ -1,0 +1,12 @@
+module PoliPage
+  module Resources
+    class Documents
+      def initialize: (PoliPage::Client client) -> void
+
+      def get: (String id) -> PoliPage::DocumentDescriptor
+      def preview: (String id) -> PoliPage::DocumentPreviewResult
+      def thumbnails: (String id, **untyped options) -> Array[PoliPage::Thumbnail]
+      def delete: (String id) -> nil
+    end
+  end
+end

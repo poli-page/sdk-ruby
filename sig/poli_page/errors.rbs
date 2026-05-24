@@ -1,0 +1,84 @@
+module PoliPage
+  class Error < StandardError
+    attr_reader code: String
+    attr_reader status: Integer?
+    attr_reader request_id: String?
+
+    def initialize: (?String? message, code: String, ?status: Integer?, ?request_id: String?) -> void
+
+    def auth_error?: () -> bool
+    def rate_limit_error?: () -> bool
+    def validation_error?: () -> bool
+    def network_error?: () -> bool
+    def retryable?: () -> bool
+  end
+
+  class ValidationError < Error
+  end
+
+  class AuthenticationError < Error
+  end
+
+  class PermissionDeniedError < Error
+  end
+
+  class NotFoundError < Error
+  end
+
+  class GoneError < Error
+  end
+
+  class RateLimitError < Error
+  end
+
+  class APIError < Error
+  end
+
+  class InvalidOptionsError < Error
+    def initialize: (String message, ?code: String) -> void
+  end
+
+  class ConnectionError < Error
+    attr_reader cause: Exception?
+
+    def initialize: (message: String, ?cause: Exception?) -> void
+  end
+
+  class TimeoutError < Error
+    attr_reader timeout: Numeric
+
+    def initialize: (timeout: Numeric) -> void
+  end
+
+  class DownloadError < Error
+    def initialize: (message: String, ?status: Integer?) -> void
+  end
+
+  class InternalError < Error
+    def initialize: (String message, ?status: Integer?) -> void
+  end
+
+  module ErrorCodes
+    MISSING_API_KEY: String
+    INVALID_API_KEY: String
+    PAYMENT_REQUIRED: String
+    FORBIDDEN: String
+    ORGANIZATION_CANCELLED: String
+    ORGANIZATION_PURGED: String
+    NOT_FOUND: String
+    VERSION_NOT_FOUND: String
+    DOCUMENT_NOT_FOUND: String
+    GONE: String
+    VALIDATION_ERROR: String
+    MISSING_DATA: String
+    MISSING_PROJECT_OR_TEMPLATE: String
+    MISSING_TEMPLATE_SLUG: String
+    PROJECT_REQUIRED_FOR_DOCUMENT: String
+    INVALID_VERSION_FORMAT: String
+    VERSION_REQUIRED: String
+    INVALID_VERSION_FOR_KEY_ENV: String
+    QUOTA_EXCEEDED: String
+    OVERAGE_CAP_EXCEEDED: String
+    INTERNAL_ERROR: String
+  end
+end

@@ -1,0 +1,32 @@
+module PoliPage
+  module Resources
+    class Render
+      def initialize: (PoliPage::Client client) -> void
+
+      def preview: (template: String, data: Hash[untyped, untyped],
+                    ?project: String?, ?version: String?, ?format: String?,
+                    ?orientation: String?, ?locale: String?,
+                    ?metadata: Hash[untyped, untyped]?,
+                    ?idempotency_key: String?) -> PoliPage::PreviewResult
+
+      def document: (project: String, template: String, data: Hash[untyped, untyped],
+                     ?version: String?, ?format: String?, ?orientation: String?,
+                     ?locale: String?, ?metadata: Hash[untyped, untyped]?,
+                     ?idempotency_key: String?) -> PoliPage::DocumentDescriptor
+
+      def pdf: (project: String, template: String, data: Hash[untyped, untyped],
+               ?version: String?, ?format: String?, ?orientation: String?,
+               ?locale: String?, ?metadata: Hash[untyped, untyped]?,
+               ?idempotency_key: String?) -> String
+
+      def pdf_stream: (project: String, template: String, data: Hash[untyped, untyped],
+                       ?version: String?, ?format: String?, ?orientation: String?,
+                       ?locale: String?, ?metadata: Hash[untyped, untyped]?,
+                       ?idempotency_key: String?) { (String) -> void } -> void
+                    | (project: String, template: String, data: Hash[untyped, untyped],
+                       ?version: String?, ?format: String?, ?orientation: String?,
+                       ?locale: String?, ?metadata: Hash[untyped, untyped]?,
+                       ?idempotency_key: String?) -> Enumerator[String, void]
+    end
+  end
+end

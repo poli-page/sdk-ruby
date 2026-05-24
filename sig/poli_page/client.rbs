@@ -1,0 +1,38 @@
+module PoliPage
+  type retry_hook = ^(PoliPage::RetryEvent) -> void
+  type error_hook = ^(PoliPage::Error) -> void
+
+  class Client
+    attr_reader base_url: String
+    attr_reader max_retries: Integer
+    attr_reader retry_delay: Numeric
+    attr_reader timeout: Numeric
+    attr_reader render: PoliPage::Resources::Render
+    attr_reader documents: PoliPage::Resources::Documents
+
+    def initialize: (api_key: String, ?base_url: String, ?max_retries: Integer,
+                     ?retry_delay: Numeric, ?timeout: Numeric,
+                     ?logger: untyped?, ?on_retry: retry_hook?,
+                     ?on_error: error_hook?) -> void
+
+    # @api private
+    def execute_post: (String path, body: Hash[untyped, untyped], ?idempotency_key: String?) -> Hash[Symbol, untyped]
+
+    # @api private
+    def execute_get: (String path) -> Hash[Symbol, untyped]
+
+    # @api private
+    def execute_delete: (String path) -> untyped
+
+    # @api private
+    def execute_get_raw: (String path) -> untyped
+
+    # @api private — from PresignedFetch mixin
+    def fetch_bytes: (String url) -> String
+
+    # @api private — from PresignedFetch mixin
+    def stream_bytes: (String url) { (String) -> void } -> void
+
+    def render_to_file: (String | Pathname path, **untyped kwargs) -> nil
+  end
+end

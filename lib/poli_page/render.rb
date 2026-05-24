@@ -18,7 +18,32 @@ module PoliPage
       # API key. Accepts both project mode and inline mode (the only render-*
       # method that does).
       #
+      # @param template        [String]  template slug (project mode) OR raw HTML (inline mode)
+      # @param data            [Hash]    template data
+      # @param project         [String, nil] project slug; required for project mode
+      # @param version         [String, nil] exact semver (e.g. "1.0.0") or "draft"
+      # @param format          [String, nil] one of `PoliPage::PageFormat::FORMATS`; default A4
+      # @param orientation     [String, nil] "portrait" or "landscape"; default portrait
+      # @param locale          [String, nil] BCP 47 (e.g. "en-US")
+      # @param metadata        [Hash, nil]   primitive-valued metadata echoed on render.document responses
+      # @param idempotency_key [String, nil] caller-supplied UUID; auto-generated if nil
       # @return [PoliPage::PreviewResult]
+      # @raise  [PoliPage::ValidationError] on 400
+      # @raise  [PoliPage::AuthenticationError] on 401
+      #
+      # @example Project mode
+      #   result = client.render.preview(
+      #     project: "billing", template: "invoice", version: "1.0.0",
+      #     data:    { invoice_number: "INV-001" }
+      #   )
+      #   puts result.html
+      #   puts "#{result.total_pages} page(s) in #{result.environment} mode"
+      #
+      # @example Inline mode (raw HTML; only render.preview accepts this)
+      #   result = client.render.preview(
+      #     template: "<h1>Hello {{ name }}</h1>",
+      #     data:     { name: "World" }
+      #   )
       def preview(template:, data:, project: nil, version: nil, format: nil,
                   orientation: nil, locale: nil, metadata: nil,
                   idempotency_key: nil)
@@ -34,6 +59,17 @@ module PoliPage
       # so that `#download_pdf` works. Project mode only.
       #
       # @return [PoliPage::DocumentDescriptor]
+      #
+      # @example
+      #   doc = client.render.document(
+      #     project:  "billing",
+      #     template: "invoice",
+      #     version:  "1.0.0",
+      #     data:     { invoice_number: "INV-001" },
+      #     metadata: { customer_id: "cust_123" }   # echoed on the descriptor
+      #   )
+      #   db.invoices.update(id: "INV-001", document_id: doc.document_id)
+      #   pdf = doc.download_pdf
       def document(project:, template:, data:, version: nil, format: nil,
                    orientation: nil, locale: nil, metadata: nil,
                    idempotency_key: nil)
@@ -51,6 +87,13 @@ module PoliPage
       #
       # @return [String] raw PDF bytes
       # @raise  [PoliPage::DownloadError] on second-hop failure
+      #
+      # @example
+      #   pdf = client.render.pdf(
+      #     project: "billing", template: "invoice", version: "1.0.0",
+      #     data:    { invoice_number: "INV-001" }
+      #   )
+      #   File.binwrite("invoice.pdf", pdf)
       def pdf(project:, template:, data:, version: nil, format: nil,
               orientation: nil, locale: nil, metadata: nil, idempotency_key: nil)
         desc = document(project: project, template: template, data: data,
@@ -67,6 +110,19 @@ module PoliPage
       # @yieldparam chunk [String] raw bytes
       # @return           [Enumerator, nil]
       # @raise            [PoliPage::DownloadError]
+      #
+      # @example Block form — pipe straight to a file
+      #   File.open("invoice.pdf", "wb") do |io|
+      #     client.render.pdf_stream(
+      #       project: "billing", template: "invoice", version: "1.0.0", data: data
+      #     ) { |chunk| io.write(chunk) }
+      #   end
+      #
+      # @example Enumerator form
+      #   enum = client.render.pdf_stream(
+      #     project: "billing", template: "invoice", version: "1.0.0", data: data
+      #   )
+      #   total = enum.sum(&:bytesize)
       def pdf_stream(project:, template:, data:, version: nil, format: nil,
                      orientation: nil, locale: nil, metadata: nil, idempotency_key: nil, &block)
         unless block

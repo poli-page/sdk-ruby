@@ -15,14 +15,28 @@ require_relative "documents"
 
 module PoliPage
   # Main entry point — orchestrates retries, fires hooks, and delegates HTTP
-  # execution to `PoliPage::Internal::Transport`. The `render` and (future)
-  # `documents` resource namespaces hold a reference to this client and
-  # delegate request execution back through it (sdk-ruby-plan.md §3.1 + §6 +
-  # §10).
+  # execution to `PoliPage::Internal::Transport`. The `render` and `documents`
+  # resource namespaces hold a reference to this client and delegate request
+  # execution back through it.
   #
   # Thread-safety: configuration is immutable after `#initialize`; each
   # request opens its own `Net::HTTP` connection. A single `Client` may be
-  # safely shared across threads.
+  # safely shared across threads — build one at boot and reuse it.
+  #
+  # @example Construct with defaults
+  #   client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+  #
+  # @example Construct with full configuration
+  #   client = PoliPage::Client.new(
+  #     api_key:     ENV.fetch("POLI_PAGE_API_KEY"),
+  #     base_url:    "https://api-develop.poli.page",
+  #     max_retries: 3,
+  #     retry_delay: 0.5,                            # seconds
+  #     timeout:     30,                             # seconds
+  #     logger:      Logger.new($stdout),
+  #     on_retry:    ->(e) { metrics.increment("polipage.retry") },
+  #     on_error:    ->(err) { Sentry.capture_exception(err) }
+  #   )
   class Client
     include Internal::PresignedFetch
 
