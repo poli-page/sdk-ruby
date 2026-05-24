@@ -20,6 +20,7 @@ require_relative "poli_page/retry_event"
 require_relative "poli_page/render"
 require_relative "poli_page/documents"
 require_relative "poli_page/client"
+require_relative "poli_page/render_to_file"
 
 module PoliPage
 end
