@@ -70,7 +70,10 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
     end
   end
 
-  it "raises InvalidOptionsError when the path is unwritable" do
+  # POSIX-only: on Windows, '/no-such-root-i-promise/x.pdf' resolves to a
+  # drive-relative path on a writable volume (e.g. D:\no-such-root-i-promise\x.pdf
+  # on the CI runner), so mkdir_p succeeds and no error is raised.
+  it "raises InvalidOptionsError when the path is unwritable", skip: Gem.win_platform? do
     expect do
       client.render_to_file("/no-such-root-i-promise/x.pdf",
                             project: "billing", template: "invoice", version: "1.0.0", data: {})
