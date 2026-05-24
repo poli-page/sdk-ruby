@@ -1,0 +1,61 @@
+name: Docs
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+# Pages deploy needs `pages: write` and OIDC `id-token: write`.
+# `contents: read` is the only repo permission required (per plan §16.6).
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Prevent overlapping deploys; queue the latest commit and cancel
+# in-flight runs so `main` always reflects HEAD on Pages.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+# TODO(phase-0 pre-flight): pin `ruby/setup-ruby` and the `actions/*-pages*`
+# actions to 40-char commit SHAs per sdk-ruby-plan.md §16.6 workflow
+# hardening (same TODO as ci.yml).
+
+jobs:
+  build:
+    name: Build YARD
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Build YARD (fail on warning)
+        run: bundle exec yard --fail-on-warning
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: doc
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
