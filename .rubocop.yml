@@ -1,0 +1,74 @@
+plugins:
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "vendor/**/*"
+    - "tmp/**/*"
+    - "doc/**/*"
+    - "coverage/**/*"
+    - "pkg/**/*"
+    - "examples/**/*"
+
+# Documentation will be enforced via YARD --fail-on-warning in CI from Phase 6.
+Style/Documentation:
+  Enabled: false
+
+# Double-quoted strings are the dominant convention in modern Ruby SDKs
+# (anthropic-sdk-ruby, stripe-ruby, openai-ruby) and match every code example
+# in sdk-ruby-plan.md. Cheap, no interpolation cost.
+Style/StringLiterals:
+  EnforcedStyle: double_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: double_quotes
+
+# Allow both standard and table-aligned hash rocket styles. The gemspec metadata
+# hash uses table alignment for readability; resource maps may use either.
+Layout/HashAlignment:
+  EnforcedHashRocketStyle:
+    - key
+    - table
+  EnforcedColonStyle:
+    - key
+    - table
+
+# Idiomatic SDK-style ASCII art and prose in comments are fine.
+Style/AsciiComments:
+  Enabled: false
+
+# Allow longer methods/classes in spec files and resource classes.
+Metrics/MethodLength:
+  Max: 25
+  Exclude:
+    - "spec/**/*"
+    - "Rakefile"
+    - "poli-page.gemspec"
+
+Metrics/ClassLength:
+  Exclude:
+    - "spec/**/*"
+
+Metrics/BlockLength:
+  Exclude:
+    - "spec/**/*"
+    - "Rakefile"
+    - "poli-page.gemspec"
+
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - "poli-page.gemspec"
+
+# RSpec cops — the rubocop-rspec defaults are mostly sensible. A few overrides:
+RSpec/ExampleLength:
+  Max: 15
+
+RSpec/MultipleExpectations:
+  Max: 5
+
+RSpec/NestedGroups:
+  Max: 5

@@ -1,0 +1,8 @@
+--markup markdown
+--no-private
+--output-dir doc
+--readme README.md
+--exclude lib/poli_page/internal/.*
+lib/**/*.rb
+-
+LICENSE

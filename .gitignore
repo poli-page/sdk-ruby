@@ -1,0 +1,40 @@
+## Build artifacts
+*.gem
+*.rbc
+/pkg/
+/tmp/
+
+## Bundler
+/.bundle/
+/vendor/bundle/
+
+## Coverage / test output
+/coverage/
+/spec/reports/
+/spec/examples.txt
+/test/tmp/
+/test/version_tmp/
+
+## YARD documentation
+/.yardoc/
+/_yardoc/
+/doc/
+/rdoc/
+
+## Environment
+.env
+.env.*
+
+## REPL / debugger
+.byebug_history
+.irb_history
+.pry_history
+
+## OS / IDE
+.DS_Store
+.idea/
+.vscode/
+
+## Sorbet / RBS caches
+/sorbet/rbi/hidden-definitions/
+/sorbet/rbi/todo.rbi
