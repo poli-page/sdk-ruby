@@ -42,7 +42,9 @@ jobs:
           bundler-cache: true
 
       - name: Bundle install (frozen)
-        run: bundle install --frozen
+        run: |
+          bundle config set --local frozen true
+          bundle install
 
       - name: RuboCop
         run: bundle exec rubocop

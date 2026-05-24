@@ -12,7 +12,7 @@
 #   - ~/.gem/credentials present (gem push will use it)
 #
 # Verify (gates the release on local CI):
-#   - bundle install --frozen
+#   - bundle config set --local frozen true && bundle install
 #   - bundle exec rubocop
 #   - bundle exec rbs validate
 #   - bundle exec rspec spec
@@ -91,7 +91,8 @@ fi
 # ─ verify (local CI) ─────────────────────────────────────────────────────
 echo
 say "Verify (lint + types + tests + audit + build)"
-bundle install --frozen
+bundle config set --local frozen true
+bundle install
 bundle exec rubocop
 bundle exec rbs validate
 bundle exec rspec spec
