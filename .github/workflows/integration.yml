@@ -1,0 +1,70 @@
+name: Integration
+
+# Hits the deployed develop API. Gated by `secrets.POLI_PAGE_API_KEY` —
+# the job becomes a no-op skip on forks/PRs without secret access. See
+# sdk-ruby-plan.md §16.4.
+#
+# Defaults to https://api-develop.poli.page; override via
+# `vars.POLI_PAGE_BASE_URL`. Test fixture project/template/version
+# come from repo variables (mirrors the Node integration tests).
+
+on:
+  schedule:
+    # Nightly at 04:23 UTC. Off-the-hour to dodge scheduler peaks.
+    - cron: "23 4 * * *"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# TODO(phase-0 pre-flight): pin `ruby/setup-ruby` to a 40-char commit
+# SHA per sdk-ruby-plan.md §16.6 (same TODO as ci.yml).
+
+jobs:
+  integration:
+    name: RSpec (integration)
+    runs-on: ubuntu-latest
+    # Skip on forks / PRs without secret access; the secret is empty there.
+    if: github.event_name != 'push' || github.repository_owner == 'poli-page'
+    env:
+      INTEGRATION: "1"
+      POLI_PAGE_API_KEY: ${{ secrets.POLI_PAGE_API_KEY }}
+      POLI_PAGE_BASE_URL: ${{ vars.POLI_PAGE_BASE_URL }}
+      POLI_PAGE_TEST_PROJECT: ${{ vars.POLI_PAGE_TEST_PROJECT }}
+      POLI_PAGE_TEST_TEMPLATE: ${{ vars.POLI_PAGE_TEST_TEMPLATE }}
+      POLI_PAGE_TEST_VERSION: ${{ vars.POLI_PAGE_TEST_VERSION }}
+    steps:
+      - name: Check secret presence
+        id: secret
+        # GHA can't reference secrets in a job-level `if`, so we surface
+        # presence as a step output and gate the expensive steps below.
+        run: |
+          if [ -n "${POLI_PAGE_API_KEY}" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "POLI_PAGE_API_KEY not set; skipping integration run."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.secret.outputs.present == 'true'
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Ruby
+        if: steps.secret.outputs.present == 'true'
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Bundle install (frozen)
+        if: steps.secret.outputs.present == 'true'
+        run: |
+          bundle config set --local frozen true
+          bundle install
+
+      - name: RSpec (integration)
+        if: steps.secret.outputs.present == 'true'
+        run: bundle exec rspec spec/integration

@@ -1,0 +1,27 @@
+version: 2
+
+# Mirrors the Node SDK setup. Weekly schedule keeps PR volume low; dev
+# deps are grouped so a single bundler bump shows up as one PR.
+# See sdk-ruby-plan.md §16.6.
+
+updates:
+  - package-ecosystem: bundler
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-dependencies:
+        applies-to: version-updates
+        dependency-type: development
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
