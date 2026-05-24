@@ -41,11 +41,11 @@ jobs:
         run: bundle exec yard --fail-on-warning
 
       - name: Configure Pages
+        # One-time setup: in repo `Settings -> Pages`, set
+        # `Source: GitHub Actions`. `enablement: true` is not used here
+        # because creating the Pages site requires admin scope which the
+        # default `GITHUB_TOKEN` doesn't have, even with `pages: write`.
         uses: actions/configure-pages@v5
-        with:
-          # Auto-enable Pages on first run so the repo doesn't need a
-          # manual `Settings -> Pages -> Source: GitHub Actions` flip.
-          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
