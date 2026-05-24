@@ -67,8 +67,16 @@ Layout/LineLength:
 RSpec/ExampleLength:
   Max: 15
 
+# Spec parity ports from the Node SDK group multiple expectations per example
+# to keep the 1:1 mapping legible — see spec/poli_page/internal/http_spec.rb
+# (ported from sdk-node/tests/internal/http.test.ts).
 RSpec/MultipleExpectations:
-  Max: 5
+  Max: 8
 
 RSpec/NestedGroups:
   Max: 5
+
+# Several spec files split a single subject across logically distinct
+# top-level groups (e.g. errors_spec covers both `Error` and `ErrorCodes`).
+RSpec/MultipleDescribes:
+  Enabled: false
