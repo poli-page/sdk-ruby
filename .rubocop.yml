@@ -80,3 +80,35 @@ RSpec/NestedGroups:
 # top-level groups (e.g. errors_spec covers both `Error` and `ErrorCodes`).
 RSpec/MultipleDescribes:
   Enabled: false
+
+# Spec file paths mirror the lib/ source organisation (e.g. models live under
+# spec/poli_page/models/ matching lib/poli_page/models/), not the bare class
+# namespace. The default rule conflicts with that — disable.
+RSpec/SpecFilePathFormat:
+  Enabled: false
+
+# Integration specs describe end-to-end behaviour against the deployed API,
+# not a specific class. They also use before(:all)/after(:all) to scope
+# the WebMock toggle to the whole describe block.
+RSpec/DescribeClass:
+  Exclude:
+    - "spec/integration/**/*"
+
+RSpec/BeforeAfterAll:
+  Exclude:
+    - "spec/integration/**/*"
+
+# The retry-loop tests stub `sleep` on the subject under test — there is no
+# cleaner way to assert sleep-duration semantics without actually sleeping
+# in CI. Acceptable: `sleep` is `Kernel#sleep`, not an SDK collaborator.
+RSpec/SubjectStub:
+  Exclude:
+    - "spec/poli_page/client_spec.rb"
+
+# Public SDK methods deliberately take many keyword arguments — every render
+# input field is its own kwarg by spec design (sdk-ruby-plan.md §9.1). The
+# default cap of 5 is too low; raise to 12, and exempt optional kwargs.
+Metrics/ParameterLists:
+  Max: 12
+  MaxOptionalParameters: 12
+  CountKeywordArgs: true
