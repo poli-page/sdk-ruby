@@ -2,6 +2,8 @@
 
 module PoliPage
   module Internal
+    # @api private
+    #
     # snake_case ↔ camelCase translator (sdk-ruby-plan.md §5.4). Pure, no
     # runtime dependency on metaprogramming DSLs. Outgoing: hash keys are
     # stringified and camelized. Incoming: hash keys are snake_cased and

@@ -2,6 +2,8 @@
 
 module PoliPage
   module Internal
+    # @api private
+    #
     # Internal constants. Convention-private; do not depend on these from
     # outside the gem (no semver protection).
     module Constants

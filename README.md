@@ -100,7 +100,7 @@ ruby examples/demo.rb
 
 The demo walks every public method end-to-end and writes the results to
 `examples/output/`. First run prompts for a `pp_test_*` key and saves it
-to `examples/.env`. Subsequent runs are silent. The `POLI_PAGE_API_KEY`
+to `.env` at the project root. Subsequent runs are silent. The `POLI_PAGE_API_KEY`
 env var wins over the file when set.
 
 ### Stream — for large PDFs or piping to S3 / HTTP responses
@@ -200,6 +200,15 @@ pick whichever fits your deploy model.
 | `logger:`     | `Logger` (any duck type)   | `nil`                      | Hook errors and DEBUG events here            |
 | `on_retry:`   | `#call(PoliPage::RetryEvent)`| `nil`                    | Called when a retry is scheduled             |
 | `on_error:`   | `#call(PoliPage::Error)`   | `nil`                      | Called when a call terminates in error       |
+| `proxy:`      | `String` (URL)             | `nil` (uses env)           | Override HTTP proxy; e.g. `"http://u:p@host:8080"` |
+| `ca_file:`    | `String` (path)            | `nil`                      | Custom CA bundle (corp MITM, private PKI)    |
+| `ca_path:`    | `String` (path)            | `nil`                      | Custom CA directory (hashed cert dir)        |
+
+`http_proxy`, `https_proxy`, and `no_proxy` environment variables are
+honored automatically by `Net::HTTP`'s `:ENV` proxy resolution — no
+configuration needed in the common case. Pass `proxy:` to override.
+For TLS verification against a private CA (e.g. behind a corporate
+MITM-terminating proxy), point `ca_file:` at a PEM bundle.
 
 ## Error handling
 

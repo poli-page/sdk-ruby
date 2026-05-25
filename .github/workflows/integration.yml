@@ -19,8 +19,8 @@ on:
 permissions:
   contents: read
 
-# TODO(phase-0 pre-flight): pin `ruby/setup-ruby` to a 40-char commit
-# SHA per sdk-ruby-plan.md §16.6 (same TODO as ci.yml).
+# All third-party Actions pinned to 40-char commit SHAs per
+# sdk-ruby-plan.md §16.6.
 
 jobs:
   integration:
@@ -54,7 +54,7 @@ jobs:
 
       - name: Set up Ruby
         if: steps.secret.outputs.present == 'true'
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
         with:
           ruby-version: "3.4"
           bundler-cache: true

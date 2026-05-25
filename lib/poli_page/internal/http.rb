@@ -7,6 +7,8 @@ require_relative "constants"
 
 module PoliPage
   module Internal
+    # @api private
+    #
     # Pure transport helpers — no I/O, no socket access. Mirrors
     # `sdk-node/src/internal/http.ts` (sdk-ruby-plan.md §13 Phase 1).
     module HTTP

@@ -6,10 +6,16 @@ require "uri"
 
 module PoliPage
   module Internal
+    # @api private
+    #
     # Mixin used by `PoliPage::Client` for the unauthenticated presigned-URL
     # second hop (DocumentDescriptor#download_pdf, render.pdf, pdf_stream).
     # The presigned URL is signed by S3 and MUST NOT be retried by the SDK
     # (sdk-ruby-plan.md §5.5).
+    #
+    # Honors the same proxy/CA configuration as {PoliPage::Internal::Transport}
+    # — reads `@proxy`, `@ca_file`, `@ca_path`, `@timeout` from the including
+    # `Client` instance.
     module PresignedFetch
       # Fetch the entire body of `url`. Returns the raw bytes; raises
       # PoliPage::DownloadError on non-2xx or network failure.
@@ -43,10 +49,22 @@ module PoliPage
       private
 
       def start_presigned(uri, &)
-        Net::HTTP.start(uri.host, uri.port,
-                        use_ssl:      uri.scheme == "https",
-                        open_timeout: @timeout,
-                        read_timeout: @timeout, &)
+        p_addr, p_port, p_user, p_pass = presigned_proxy_args
+        opts = {
+          use_ssl:      uri.scheme == "https",
+          open_timeout: @timeout,
+          read_timeout: @timeout
+        }
+        opts[:ca_file] = @ca_file if @ca_file
+        opts[:ca_path] = @ca_path if @ca_path
+        Net::HTTP.start(uri.host, uri.port, p_addr, p_port, p_user, p_pass, opts, &)
+      end
+
+      def presigned_proxy_args
+        return [:ENV, nil, nil, nil] if @proxy.nil?
+
+        pu = URI.parse(@proxy)
+        [pu.host, pu.port, pu.user, pu.password]
       end
 
       def guard_presigned_status!(response)

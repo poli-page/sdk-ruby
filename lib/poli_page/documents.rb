@@ -69,6 +69,7 @@ module PoliPage
       #   thumbs = client.documents.thumbnails("doc_abc123", width: 320, format: "png", pages: [1])
       #   File.binwrite("page1.png", Base64.decode64(thumbs.first.data))
       def thumbnails(id, **options)
+        validate_thumbnail_options!(options)
         body = { thumbnails: options.compact }
         parsed = @client.execute_post("#{path_for(id)}/thumbnails", body: body)
         parsed[:thumbnails].map { |t| PoliPage::Thumbnail.new(**t) }
@@ -96,6 +97,51 @@ module PoliPage
       # which the deployed API rejects in path segments.
       def path_for(id)
         "#{Internal::Constants::PATH_DOCUMENTS}/#{URI.encode_uri_component(id)}"
+      end
+
+      # Local arg validation — fail fast with a clear `InvalidOptionsError`
+      # before issuing the HTTP request. Mirrors the server's invariants for
+      # `documents.thumbnails` (sdk-specification.md / Node SDK).
+      def validate_thumbnail_options!(options)
+        validate_thumbnail_width!(options[:width])
+        validate_thumbnail_format!(options[:format])
+        validate_thumbnail_quality!(options[:quality], options[:format])
+        validate_thumbnail_pages!(options[:pages])
+      end
+
+      def validate_thumbnail_width!(width)
+        return if width.is_a?(Integer) && width.positive?
+
+        raise PoliPage::InvalidOptionsError,
+              "thumbnails: width is required and must be a positive Integer (got #{width.inspect})"
+      end
+
+      def validate_thumbnail_format!(format)
+        return if format.nil? || %w[png jpeg].include?(format)
+
+        raise PoliPage::InvalidOptionsError,
+              "thumbnails: format must be 'png' or 'jpeg' (got #{format.inspect})"
+      end
+
+      def validate_thumbnail_quality!(quality, format)
+        return if quality.nil?
+
+        unless format == "jpeg"
+          raise PoliPage::InvalidOptionsError,
+                "thumbnails: quality is only valid with format: 'jpeg'"
+        end
+        return if quality.is_a?(Integer) && (1..100).cover?(quality)
+
+        raise PoliPage::InvalidOptionsError,
+              "thumbnails: quality must be an Integer between 1 and 100 (got #{quality.inspect})"
+      end
+
+      def validate_thumbnail_pages!(pages)
+        return if pages.nil?
+        return if pages.is_a?(Array) && pages.all? { |p| p.is_a?(Integer) && p.positive? }
+
+        raise PoliPage::InvalidOptionsError,
+              "thumbnails: pages must be an Array of positive Integers (got #{pages.inspect})"
       end
     end
   end

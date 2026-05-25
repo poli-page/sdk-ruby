@@ -35,8 +35,15 @@ module PoliPage
   #     timeout:     30,                             # seconds
   #     logger:      Logger.new($stdout),
   #     on_retry:    ->(e) { metrics.increment("polipage.retry") },
-  #     on_error:    ->(err) { Sentry.capture_exception(err) }
+  #     on_error:    ->(err) { Sentry.capture_exception(err) },
+  #     proxy:       "http://user:pass@proxy.example.com:8080",
+  #     ca_file:     "/etc/ssl/corp-mitm-ca.pem"
   #   )
+  #
+  # @example Behind a corporate egress proxy (env-detected)
+  #   # `http_proxy` / `https_proxy` / `no_proxy` env vars are honoured
+  #   # automatically — no `proxy:` kwarg needed.
+  #   client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
   class Client
     include Internal::PresignedFetch
 
@@ -46,7 +53,8 @@ module PoliPage
                    max_retries: Internal::Constants::DEFAULT_MAX_RETRIES,
                    retry_delay: Internal::Constants::DEFAULT_RETRY_DELAY,
                    timeout: Internal::Constants::DEFAULT_TIMEOUT,
-                   logger: nil, on_retry: nil, on_error: nil)
+                   logger: nil, on_retry: nil, on_error: nil,
+                   proxy: nil, ca_file: nil, ca_path: nil)
       raise InvalidOptionsError, "api_key is required" if api_key.nil? || api_key.empty?
 
       @api_key     = api_key
@@ -57,10 +65,22 @@ module PoliPage
       @logger      = logger
       @on_retry    = on_retry
       @on_error    = on_error
-      @transport   = Internal::Transport.new(base_url: base_url, timeout: timeout)
+      @proxy       = proxy
+      @ca_file     = ca_file
+      @ca_path     = ca_path
+      @transport   = Internal::Transport.new(base_url: base_url, timeout: timeout,
+                                             proxy: proxy, ca_file: ca_file, ca_path: ca_path)
       @render      = Resources::Render.new(self)
       @documents   = Resources::Documents.new(self)
     end
+
+    # Redacted `#inspect`. Ruby's default would dump `@api_key` into any
+    # `puts client` or exception backtrace — that's how secrets end up in
+    # logs (sdk-ruby-plan.md §10.1 redaction rule).
+    def inspect
+      "#<PoliPage::Client base_url=#{@base_url.inspect} timeout=#{@timeout} max_retries=#{@max_retries}>"
+    end
+    alias to_s inspect
 
     # Execute a POST request against `path` with `body` (snake_case hash;
     # caller's responsibility to compact nils). Returns the parsed

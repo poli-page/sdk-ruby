@@ -14,8 +14,8 @@ permissions:
   contents: read
   security-events: write
 
-# TODO(phase-0 pre-flight): pin `github/codeql-action/*` to 40-char
-# commit SHAs per sdk-ruby-plan.md §16.6 (same TODO as ci.yml).
+# All third-party Actions pinned to 40-char commit SHAs per
+# sdk-ruby-plan.md §16.6.
 
 jobs:
   analyze:
@@ -26,12 +26,12 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@dc73d59c2d7bd4f8194098a91219eeee6d8a1719 # v4
         with:
           languages: ruby
           queries: security-and-quality
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@dc73d59c2d7bd4f8194098a91219eeee6d8a1719 # v4
         with:
           category: "/language:ruby"

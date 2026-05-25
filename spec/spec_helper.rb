@@ -4,6 +4,12 @@ require "simplecov"
 SimpleCov.start do
   add_filter "/spec/"
   enable_coverage :branch
+
+  # Coverage gate — keep CI honest. Internal seams shift over time; the
+  # public surface stays well above these floors. Bump them up when the
+  # measured coverage justifies it. Override locally by exporting
+  # `SIMPLECOV_NO_FAIL=1` (e.g. when iterating on a single spec file).
+  minimum_coverage line: 90, branch: 75 unless ENV["SIMPLECOV_NO_FAIL"] == "1"
 end
 
 require "webmock/rspec"

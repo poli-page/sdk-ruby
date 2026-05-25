@@ -4,9 +4,9 @@
 #
 # Resolves the API key in this order:
 #   1. ENV["POLI_PAGE_API_KEY"] (host shell wins, useful in CI).
-#   2. `examples/.env` (the canonical project file — survives across runs).
+#   2. `.env` at the project root (the canonical file — survives across runs).
 #   3. Interactive prompt. On a successful paste the key is appended to
-#      `examples/.env` so future runs skip the prompt.
+#      `.env` so future runs skip the prompt.
 #
 # Resolves the base URL the same way without the prompt — defaulting to
 # `https://api.poli.page`.
@@ -15,7 +15,7 @@ require "fileutils"
 require "pathname"
 
 module Demo
-  ENV_FILE = Pathname(__dir__).join(".env").freeze
+  ENV_FILE = Pathname(__dir__).parent.join(".env").freeze
 
   USE_COLOR = $stdout.tty? && ENV["NO_COLOR"] != "1"
 
@@ -118,7 +118,7 @@ module Demo
     puts dim("         dashboard URL when you're inside your organization)")
     puts "     3. Click \"Create key\" and copy the value (starts with #{cyan("pp_test_")})."
     puts
-    puts "   Paste it below — we'll save it to #{cyan("examples/.env")} so future"
+    puts "   Paste it below — we'll save it to #{cyan(".env")} so future"
     puts "   runs pick it up automatically. (You can also set"
     puts "   #{dim("POLI_PAGE_API_KEY")} in your shell — that wins over the file.)"
     puts

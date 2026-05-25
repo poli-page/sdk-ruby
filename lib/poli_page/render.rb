@@ -47,6 +47,7 @@ module PoliPage
       def preview(template:, data:, project: nil, version: nil, format: nil,
                   orientation: nil, locale: nil, metadata: nil,
                   idempotency_key: nil)
+        validate_render_kwargs!(format: format, orientation: orientation)
         body = { project: project, template: template, data: data, version: version,
                  format: format, orientation: orientation, locale: locale, metadata: metadata }.compact
         parsed = @client.execute_post(Internal::Constants::PATH_RENDER_PREVIEW,
@@ -73,6 +74,7 @@ module PoliPage
       def document(project:, template:, data:, version: nil, format: nil,
                    orientation: nil, locale: nil, metadata: nil,
                    idempotency_key: nil)
+        validate_render_kwargs!(format: format, orientation: orientation)
         body = { project: project, template: template, data: data, version: version,
                  format: format, orientation: orientation, locale: locale, metadata: metadata }.compact
         parsed = @client.execute_post(Internal::Constants::PATH_RENDER,
@@ -138,6 +140,23 @@ module PoliPage
                         version: version, format: format, orientation: orientation,
                         locale: locale, metadata: metadata, idempotency_key: idempotency_key)
         @client.stream_bytes(desc.presigned_pdf_url, &block)
+      end
+
+      private
+
+      # Local arg validation — fail fast with a clear `InvalidOptionsError`
+      # before issuing the HTTP request. The deployed API rejects these too,
+      # but raising client-side saves a round-trip and surfaces a friendlier
+      # error message (sdk-ruby-plan.md §9.1).
+      def validate_render_kwargs!(format:, orientation:)
+        if format && !PoliPage::PageFormat.valid?(format)
+          raise PoliPage::InvalidOptionsError,
+                "invalid format: #{format.inspect}; expected one of #{PoliPage::PageFormat::FORMATS.to_a}"
+        end
+        return unless orientation && !PoliPage::Orientation.valid?(orientation)
+
+        raise PoliPage::InvalidOptionsError,
+              "invalid orientation: #{orientation.inspect}; expected 'portrait' or 'landscape'"
       end
     end
   end

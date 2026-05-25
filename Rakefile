@@ -11,18 +11,19 @@ task :rbs_validate do
   sh "bundle exec rbs validate"
 end
 
+desc "Run Steep type-check (errors only, allows warnings)"
+task :steep do
+  sh "bundle exec steep check --severity-level=error"
+end
+
 desc "YARD docs (warning-free) to doc/"
 task :yard do
   sh "bundle exec yard --fail-on-warning"
 end
 
-# Default task runs lint + RBS syntax validation + unit specs.
-#
-# `bundle exec steep check` is intentionally excluded from the default task
-# (and from CI) — see `sig/poli_page/*.rbs`: the published RBS sigs cover
-# only the public surface, while `lib/poli_page/internal/` has no sigs by
-# design (it's convention-private, semver-exempt). Steep's strict mode
-# warns on every internal call. The sigs are still useful for consumer
-# IDEs and `rbs validate` catches authoring errors in CI. Devs may still
-# run `bundle exec steep check --severity-level error` locally.
-task default: %i[rubocop rbs_validate spec]
+# Default task runs lint + RBS syntax validation + Steep (errors-only) +
+# unit specs. Steep runs with `--severity-level=error`: only severity-error
+# diagnostics fail the build, so internal-namespace untyped calls (which
+# Steep reports as `warning`) stay non-blocking. Use `bundle exec steep
+# check` (no severity flag) locally for the strictest read.
+task default: %i[rubocop rbs_validate steep spec]

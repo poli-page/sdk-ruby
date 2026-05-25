@@ -13,7 +13,11 @@ module PoliPage
     def initialize: (api_key: String, ?base_url: String, ?max_retries: Integer,
                      ?retry_delay: Numeric, ?timeout: Numeric,
                      ?logger: untyped?, ?on_retry: retry_hook?,
-                     ?on_error: error_hook?) -> void
+                     ?on_error: error_hook?,
+                     ?proxy: String?, ?ca_file: String?, ?ca_path: String?) -> void
+
+    def inspect: () -> String
+    def to_s: () -> String
 
     # @api private
     def execute_post: (String path, body: Hash[untyped, untyped], ?idempotency_key: String?) -> Hash[Symbol, untyped]

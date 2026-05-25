@@ -23,6 +23,7 @@ Gem::Specification.new do |s|
   }
 
   s.files = Dir["lib/**/*.rb"] + Dir["sig/**/*.rbs"] +
-            %w[LICENSE README.md CHANGELOG.md MIGRATION.md SECURITY.md].select { |f| File.exist?(f) }
+            %w[LICENSE README.md CHANGELOG.md MIGRATION.md SECURITY.md CODE_OF_CONDUCT.md]
+            .select { |f| File.exist?(f) }
   s.require_paths = ["lib"]
 end

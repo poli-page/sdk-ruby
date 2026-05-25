@@ -9,12 +9,9 @@ on:
 permissions:
   contents: read
 
-# Steep is intentionally not run in CI — see Rakefile. The published RBS
-# sigs cover only the public surface and Steep's strict mode is noisy
-# about internal-namespace references. `rbs validate` (RBS syntax check)
-# does run, and devs may opt into `bundle exec steep check` locally.
-# TODO(phase-0 pre-flight): pin `ruby/setup-ruby` to a 40-char commit SHA
-# (currently a floating tag) per sdk-ruby-plan.md §16.6 workflow hardening.
+# All third-party Actions pinned to 40-char commit SHAs per
+# sdk-ruby-plan.md §16.6 (supply-chain hardening). The trailing comment
+# is the human-readable tag; bump SHA + tag together via Dependabot.
 
 jobs:
   test:
@@ -36,7 +33,7 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up Ruby
-        uses: ruby/setup-ruby@v1
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
@@ -74,3 +71,29 @@ jobs:
           cd "${RUNNER_TEMP}/smoke"
           gem install "${GITHUB_WORKSPACE}"/poli-page-*.gem --no-document --install-dir "${RUNNER_TEMP}/smoke/.gems"
           GEM_PATH="${RUNNER_TEMP}/smoke/.gems" ruby -r poli_page -e 'puts PoliPage::VERSION'
+
+  steep:
+    name: Steep (type check)
+    runs-on: ubuntu-latest
+    # Steep runs separately from the test matrix: it's Ruby-version-agnostic
+    # and isolating it makes the failure cause obvious. Configured with
+    # `--severity-level=error` so internal-namespace untyped calls (Steep
+    # surfaces these as `warning`) don't fail the build — only actionable
+    # type errors do (sdk-ruby-plan.md §9.3).
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Bundle install (frozen)
+        run: |
+          bundle config set --local frozen true
+          bundle install
+
+      - name: Steep check (severity=error)
+        run: bundle exec steep check --severity-level=error

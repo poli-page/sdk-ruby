@@ -7,6 +7,17 @@
 target :lib do
   signature "sig"
 
+  # The public-surface .rbs files don't declare private helper methods or
+  # the back-doors used by `Data.define`'d value objects (`_strict_new`,
+  # forgiving kwargs constructors). Steep's strict / default modes treat
+  # those as `NoMethod` errors. Lenient downgrades `NoMethod`,
+  # `InsufficientKeywordArguments`, and `UnresolvedOverloading` to
+  # information-level — real type contradictions (mismatched arg types,
+  # wrong return shapes) are still flagged. Combined with
+  # `--severity-level=error` in CI, this lets Steep block on actionable
+  # bugs without forcing every private helper into RBS.
+  configure_code_diagnostics(Steep::Diagnostic::Ruby.lenient)
+
   check "lib/poli_page/client.rb"
   check "lib/poli_page/render.rb"
   check "lib/poli_page/documents.rb"
