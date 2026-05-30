@@ -15,11 +15,18 @@
 /test/tmp/
 /test/version_tmp/
 
-## YARD documentation
+## YARD documentation (legacy — replaced by Starlight site under docs/)
 /.yardoc/
 /_yardoc/
 /doc/
 /rdoc/
+
+## Starlight docs site
+docs/node_modules/
+docs/dist/
+docs/.astro/
+docs/src/content/docs/reference/
+scripts/extract-api/.cache/
 
 ## Environment
 .env

@@ -1,0 +1,39 @@
+---
+title: Configuration
+description: Per-client options for timeouts, retries, proxies, and observability hooks.
+---
+
+`PoliPage::Client.new` accepts an `api_key:` plus a set of optional keyword arguments. Every field is optional except `api_key:`. Defaults match the canonical SDK behavior shared by every Poli Page SDK.
+
+## Available options
+
+- `api_key:` (required) — your `pp_test_` or `pp_live_` key.
+- `base_url:` — override the API endpoint. Defaults to `https://api.poli.page`.
+- `timeout:` — per-request timeout in seconds. Defaults to `60`.
+- `max_retries:` — maximum retry attempts for retryable errors. Defaults to `2` (three total attempts).
+- `retry_delay:` — initial retry backoff in seconds. Defaults to `0.5`. Doubles each attempt.
+- `logger:` — a `Logger` instance; hook failures are logged here.
+- `on_retry:` / `on_error:` — observability hooks. Never block, never mutate.
+- `proxy:` — explicit proxy URL. `http_proxy` / `https_proxy` env vars are honored automatically when this is `nil`.
+- `ca_file:` / `ca_path:` — custom TLS trust store for corporate MITM proxies.
+
+## Example
+
+```ruby
+require "logger"
+require "poli_page"
+
+client = PoliPage::Client.new(
+  api_key:     ENV.fetch("POLI_PAGE_API_KEY"),
+  timeout:     30,
+  max_retries: 3,
+  retry_delay: 0.25,
+  logger:      Logger.new($stdout),
+  on_retry:    ->(event) { puts "retry attempt #{event.attempt} after #{event.delay}s" }
+)
+```
+
+## See also
+- [Authentication](../authentication/)
+- [Observability](../../production/observability/)
+- [Retries and idempotency](../../production/retries-and-idempotency/)

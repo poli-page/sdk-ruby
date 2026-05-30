@@ -1,0 +1,76 @@
+---
+title: Cancellation
+description: How to cancel in-flight requests using Ruby threads and the configured timeout.
+---
+
+The Ruby SDK uses a per-request timeout (configured by the constructor `timeout:` option) to bound how long any single HTTP call may take. Caller-driven cancellation is achieved by running the call in a Ruby `Thread` and calling `Thread#kill` or `Thread#raise` to interrupt it.
+
+## Timeout-based cancellation
+
+```ruby
+client = PoliPage::Client.new(
+  api_key: ENV.fetch("POLI_PAGE_API_KEY"),
+  timeout: 5
+)
+
+begin
+  pdf = client.render.pdf(
+    project:  "billing",
+    template: "invoice",
+    data:     { invoice_number: "INV-001" }
+  )
+rescue PoliPage::TimeoutError => e
+  warn "request timed out after #{e.timeout}s"
+end
+```
+
+`PoliPage::TimeoutError` is retried by the SDK up to `max_retries` times before it propagates.
+
+## Thread-based cancellation
+
+For cancellation tied to an external signal (a user closing a connection, a background job being cancelled), run the render in a thread and interrupt it from the parent:
+
+```ruby
+worker = Thread.new do
+  client.render.pdf(
+    project:  "billing",
+    template: "invoice",
+    data:     { invoice_number: "INV-001" }
+  )
+end
+
+# Cancel after 5 seconds.
+cancel_at = Time.now + 5
+worker.kill if !worker.join(5)
+```
+
+The underlying `Net::HTTP` connection is closed when the thread exits; in-flight bytes are discarded.
+
+## Cancellation vs timeout
+
+`timeout:` is enforced internally by the SDK on every HTTP call. Caller-driven interruption via threads always wins on or before the SDK timeout, since the thread can be killed at any time.
+
+## Example
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(
+  api_key: ENV.fetch("POLI_PAGE_API_KEY"),
+  timeout: 10
+)
+
+begin
+  pdf = client.render.pdf(
+    project:  "billing",
+    template: "invoice",
+    data:     { invoice_number: "INV-001" }
+  )
+rescue PoliPage::TimeoutError
+  warn "render did not complete in time"
+end
+```
+
+## See also
+- [Configuration](../../concepts/configuration/)
+- [Errors](../errors/)

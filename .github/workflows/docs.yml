@@ -3,53 +3,75 @@ name: Docs
 on:
   push:
     branches: [main]
-    tags: ["v*"]
+    paths:
+      - 'lib/**'
+      - 'examples/**'
+      - 'docs/**'
+      - 'scripts/extract-api/**'
+      - 'poli-page.gemspec'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - 'CHANGELOG.md'
+      - 'MIGRATION.md'
+      - 'LICENSE'
+      - '.github/workflows/docs.yml'
+  release:
+    types: [published]
   workflow_dispatch:
 
 # Pages deploy needs `pages: write` and OIDC `id-token: write`.
-# `contents: read` is the only repo permission required (per plan §16.6).
 permissions:
   contents: read
   pages: write
   id-token: write
 
-# Prevent overlapping deploys; queue the latest commit and cancel
-# in-flight runs so `main` always reflects HEAD on Pages.
+# Prevent overlapping deploys; queue the latest commit and keep main
+# always reflecting HEAD on Pages.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
-# All third-party Actions pinned to 40-char commit SHAs per
-# sdk-ruby-plan.md §16.6.
+# All third-party Actions pinned to 40-char commit SHAs.
 
 jobs:
   build:
-    name: Build YARD
+    name: Build Starlight site
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up Ruby
+      - name: Set up Ruby (for the YARD extractor)
         uses: ruby/setup-ruby@a4effe49ee8ee5b8b5091268c473a4628afb5651 # v1.245.0
         with:
           ruby-version: "3.4"
           bundler-cache: true
 
-      - name: Build YARD (fail on warning)
-        run: bundle exec yard --fail-on-warning
+      - name: Set up Node (for Astro)
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install docs deps
+        working-directory: docs
+        run: npm ci || npm install --no-audit --no-fund
+
+      - name: Build docs site (YARD extract + astro build)
+        working-directory: docs
+        run: npm run build
+
+      - name: Verify index exists
+        run: test -s docs/dist/index.html
 
       - name: Configure Pages
-        # One-time setup: in repo `Settings -> Pages`, set
-        # `Source: GitHub Actions`. `enablement: true` is not used here
-        # because creating the Pages site requires admin scope which the
-        # default `GITHUB_TOKEN` doesn't have, even with `pages: write`.
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
-          path: doc
+          path: docs/dist
 
   deploy:
     name: Deploy to GitHub Pages
@@ -61,4 +83,4 @@ jobs:
     steps:
       - name: Deploy
         id: deployment
-        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
+        uses: actions/deploy-pages@d6db90ba9d3a1c8d5b6b1e2b6e5b88aaa3c2e8bb # v4.0.5

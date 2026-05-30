@@ -17,7 +17,7 @@ Gem::Specification.new do |s|
     "homepage_uri"          => "https://poli.page",
     "source_code_uri"       => "https://github.com/poli-page/sdk-ruby",
     "changelog_uri"         => "https://github.com/poli-page/sdk-ruby/blob/main/CHANGELOG.md",
-    "documentation_uri"     => "https://rubydoc.info/gems/poli-page",
+    "documentation_uri"     => "https://poli-page.github.io/sdk-ruby/",
     "bug_tracker_uri"       => "https://github.com/poli-page/sdk-ruby/issues",
     "rubygems_mfa_required" => "true"
   }

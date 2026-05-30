@@ -1,0 +1,55 @@
+---
+title: Quick start
+description: Render your first PDF with the Poli Page Ruby SDK in under 30 seconds.
+---
+
+import ApiKeyCallout from '@preset/components/ApiKeyCallout.astro';
+
+This page walks through your first render — from key to PDF — without touching the dashboard.
+
+<ApiKeyCallout />
+
+## Set your API key
+
+Export your key into the environment your script runs in:
+
+```bash
+export POLI_PAGE_API_KEY=pp_test_...
+```
+
+## Render a PDF
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+
+pdf = client.render.pdf(
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001", total: 1280 }
+)
+```
+
+`pdf` is a binary-encoded `String` of PDF bytes. Write it to disk, upload it to S3, or return it from a Rails controller.
+
+## Example
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+
+pdf = client.render.pdf(
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001", total: 1280 }
+)
+
+File.binwrite("invoice.pdf", pdf)
+```
+
+## See also
+- [Authentication](../../concepts/authentication/)
+- [Render modes](../../concepts/render-modes/)
+- [Output handling](../../concepts/output-handling/)

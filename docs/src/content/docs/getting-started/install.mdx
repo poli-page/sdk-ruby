@@ -1,0 +1,42 @@
+---
+title: Install
+description: How to install the Poli Page Ruby SDK with Bundler or rubygems.
+---
+
+The Poli Page Ruby SDK ships as `poli-page` on RubyGems. The gem has zero runtime dependencies — only the Ruby stdlib (`net/http`, `json`, `uri`, `securerandom`, `logger`, `openssl`). It requires Ruby 3.2 or later.
+
+## Install with Bundler
+
+Add to your `Gemfile`:
+
+```ruby
+gem "poli-page"
+```
+
+Then run:
+
+```bash
+bundle install
+```
+
+## Install with rubygems
+
+```bash
+gem install poli-page
+```
+
+## Ruby version
+
+The SDK targets Ruby 3.2 and tests against Ruby 3.2, 3.3, and 3.4 on Linux and macOS. See [runtime support](../../reference/runtime-support/) for the full matrix.
+
+## Example
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+```
+
+## See also
+- [Quick start](../quick-start/)
+- [Configuration](../../concepts/configuration/)

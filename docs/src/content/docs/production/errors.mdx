@@ -1,0 +1,81 @@
+---
+title: Errors
+description: How the Poli Page SDK surfaces failures and how to handle each error class and code.
+---
+
+import ErrorTable from '@preset/components/ErrorTable.astro';
+
+Every failure raised by the SDK is a `PoliPage::Error` subclass. Catch a specific subclass when you want narrow control (`rescue PoliPage::RateLimitError`), or `rescue PoliPage::Error` to handle every SDK failure at once. The `code:` reader is the machine-readable string; `request_id:` is what to quote on a support ticket.
+
+## The error hierarchy
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+
+begin
+  client.render.pdf(project: "billing", template: "invoice", data: {})
+rescue PoliPage::Error => e
+  warn "#{e.class}: #{e.code} (request_id=#{e.request_id})"
+end
+```
+
+HTTP status maps to a subclass via `PoliPage::Internal::HTTP.classify`:
+
+- `400` → `ValidationError`
+- `401` → `AuthenticationError`
+- `403` → `PermissionDeniedError`
+- `404` → `NotFoundError`
+- `410` → `GoneError`
+- `429` → `RateLimitError`
+- other 4xx / 5xx → `APIError`
+
+The SDK-internal subclasses (`InvalidOptionsError`, `ConnectionError`, `TimeoutError`, `DownloadError`, `InternalError`) are raised before any HTTP call or in response to a network-layer failure.
+
+## API codes
+
+Returned by the Poli Page API. Uppercase, snake-case. The SDK forwards the code verbatim into `Error#code`.
+
+<ErrorTable errors={[
+  { code: 'INVALID_API_KEY', when: 'The API key is malformed or revoked.', recovery: 'Rotate the key in the dashboard.' },
+  { code: 'MISSING_API_KEY', when: 'No API key was provided in the request.', recovery: 'Pass `api_key:` to the constructor.' },
+  { code: 'NOT_FOUND', when: 'The `project/template` slug or `document_id` does not exist.', recovery: 'Verify the slug or id; check the template is published in this environment.' },
+  { code: 'VALIDATION_ERROR', when: 'The `data:` hash does not satisfy the template schema.', recovery: 'Inspect the template schema in the dashboard.' },
+  { code: 'MISSING_DATA', when: 'The request body lacks a required `data` field.', recovery: 'Pass `data: {}` (or with values) on every render call.' },
+  { code: 'QUOTA_EXCEEDED', when: 'You exceeded the per-key rate limit or monthly quota.', recovery: 'Automatically retried; bump tier for sustained higher throughput.' },
+  { code: 'PAYMENT_REQUIRED', when: 'The organization billing is past due.', recovery: 'Update the payment method in the dashboard.' },
+  { code: 'INTERNAL_ERROR', when: 'The API returned 5xx.', recovery: 'Automatically retried; contact support if it persists.' },
+]} />
+
+The full list of API codes lives in [the reference](../../reference/errors/).
+
+## Predicate helpers
+
+`PoliPage::Error` exposes `#auth_error?`, `#rate_limit_error?`, `#validation_error?`, `#network_error?`, and `#retryable?` for callers who want a single rescue clause backed by introspection.
+
+## Example
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+
+begin
+  pdf = client.render.pdf(
+    project:  "billing",
+    template: "invoice",
+    data:     { invoice_number: "INV-001" }
+  )
+rescue PoliPage::RateLimitError => e
+  # Custom strategy beyond the SDK's built-in retries.
+  warn "rate limited (request_id=#{e.request_id}); backing off"
+rescue PoliPage::Error => e
+  warn "render failed: #{e.code} (#{e.class})"
+  raise
+end
+```
+
+## See also
+- [Retries and idempotency](../retries-and-idempotency/)
+- [Observability](../observability/)
