@@ -1,0 +1,80 @@
+---
+title: Output handling
+description: Receive PDF bytes in memory, as a stream, written to disk, or stored server-side.
+---
+
+The SDK gives you four ways to handle a rendered PDF: in-memory bytes, a stream of chunks, a write-to-disk helper, or a stored document on the server. Pick the one that matches how your code consumes the output.
+
+## In-memory (`render.pdf`)
+
+```ruby
+pdf = client.render.pdf(
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001" }
+)
+# pdf is a binary-encoded String — write, upload, return as-is.
+```
+
+Best for documents that fit comfortably in process memory.
+
+## Streaming (`render.pdf_stream`)
+
+For large PDFs or piping straight to a file or object store, use `pdf_stream` and let the SDK keep memory bounded. Pass a block to consume chunks, or omit the block to get an `Enumerator`.
+
+```ruby
+File.open("invoice.pdf", "wb") do |io|
+  client.render.pdf_stream(
+    project:  "billing",
+    template: "invoice",
+    data:     { invoice_number: "INV-001" }
+  ) { |chunk| io.write(chunk) }
+end
+```
+
+## Write to file (`render_to_file`)
+
+The client exposes a convenience helper that streams bytes directly to disk. Parent directories are created automatically; the partial file is removed on render error.
+
+```ruby
+client.render_to_file(
+  "invoices/INV-001.pdf",
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001" }
+)
+```
+
+## Server-side storage (`render.document`)
+
+When you want the PDF to live on Poli Page's servers (for later download, preview, or thumbnails), use `render.document`. It returns a `DocumentDescriptor` with `document_id`, `presigned_pdf_url`, and a `#download_pdf` method.
+
+```ruby
+doc = client.render.document(
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001" }
+)
+pdf = doc.download_pdf
+```
+
+`presigned_pdf_url` has a ~15-minute TTL. If it expires, call `client.documents.get(doc.document_id)` to refresh.
+
+## Example
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+
+client.render_to_file(
+  "invoices/INV-001.pdf",
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001", total: 1280 }
+)
+```
+
+## See also
+- [Cancellation](../../production/cancellation/)
+- [Retries and idempotency](../../production/retries-and-idempotency/)

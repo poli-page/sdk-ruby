@@ -1,0 +1,62 @@
+---
+title: Observability
+description: Hooks for logging retries and errors without coupling to a logger.
+---
+
+The SDK exposes two optional callable hooks on the constructor: `on_retry:` and `on_error:`. They give you the raw signal needed to instrument the SDK with whatever logger, metrics library, or tracing library you use, without baking a dependency into the SDK itself. Hook failures are caught and logged to the constructor-supplied `logger:` (when present), never re-raised.
+
+## The hooks
+
+- `on_retry:` — fires before a retry attempt. The argument is a `PoliPage::RetryEvent` with `#attempt` (1-based), `#delay` (seconds), and `#reason` (the `PoliPage::Error` that triggered the retry).
+- `on_error:` — fires once when a request fails terminally (after retries are exhausted). The argument is the `PoliPage::Error` about to be raised.
+
+Both hooks are fire-and-forget. The SDK does not let them mutate request behavior; an exception raised inside a hook is rescued and logged.
+
+## Wiring a logger
+
+Pass any `Logger`-shaped object to `logger:`. Hook exceptions are written there with the class and message:
+
+```ruby
+require "logger"
+
+client = PoliPage::Client.new(
+  api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
+  logger:   Logger.new($stdout)
+)
+```
+
+## Wiring metrics or tracing
+
+`on_retry:` and `on_error:` are the integration points for StatsD / OpenTelemetry / Sentry:
+
+```ruby
+client = PoliPage::Client.new(
+  api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
+  on_retry: ->(event) { Metrics.increment("polipage.retry", tags: { code: event.reason.code }) },
+  on_error: ->(err)   { Sentry.capture_exception(err) }
+)
+```
+
+## Example
+
+```ruby
+require "logger"
+require "poli_page"
+
+client = PoliPage::Client.new(
+  api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
+  logger:   Logger.new($stdout),
+  on_retry: ->(event) { warn "retry #{event.attempt} after #{event.delay}s: #{event.reason.code}" },
+  on_error: ->(err)   { warn "terminal: #{err.class}: #{err.code}" }
+)
+
+client.render.pdf(
+  project:  "billing",
+  template: "invoice",
+  data:     { invoice_number: "INV-001" }
+)
+```
+
+## See also
+- [Configuration](../../concepts/configuration/)
+- [Errors](../errors/)

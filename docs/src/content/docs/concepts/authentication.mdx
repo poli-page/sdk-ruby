@@ -1,0 +1,46 @@
+---
+title: Authentication
+description: How the Poli Page Ruby SDK authenticates with the API using test or live keys.
+---
+
+import ApiKeyCallout from '@preset/components/ApiKeyCallout.astro';
+
+The Poli Page Ruby SDK authenticates every request with a bearer token. The key prefix determines which environment the request hits.
+
+## API keys
+
+<ApiKeyCallout />
+
+Pass the key to the client constructor:
+
+```ruby
+client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
+```
+
+The SDK never reads `ENV["POLI_PAGE_API_KEY"]` implicitly. You always pass the key in. `#inspect` and `#to_s` redact the key so it never leaks into logs or backtraces.
+
+## Custom base URL
+
+To target the develop environment (or a self-hosted gateway), override `base_url`:
+
+```ruby
+client = PoliPage::Client.new(
+  api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
+  base_url: "https://api-develop.poli.page"
+)
+```
+
+## Example
+
+```ruby
+require "poli_page"
+
+client = PoliPage::Client.new(
+  api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
+  base_url: ENV.fetch("POLI_PAGE_BASE_URL", "https://api.poli.page")
+)
+```
+
+## See also
+- [Configuration](../configuration/)
+- [Errors](../../production/errors/)

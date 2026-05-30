@@ -1,0 +1,16 @@
+---
+title: Migration
+description: Upgrade guides for moving between major versions of the Ruby SDK.
+---
+
+This page tracks breaking changes between major versions of the `poli-page` gem. For the full per-release diff, see the [changelog](../changelog/).
+
+## v1.0
+
+The first stable release. The full v1.0 surface and any renames from earlier prereleases are documented in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md).
+
+Short version: every render call goes through a resource namespace (`client.render.pdf`, `client.render.preview`, `client.render.document`), all PDF-producing methods require project mode, and inline HTML is only accepted by `client.render.preview`.
+
+## See also
+- [Changelog](../changelog/)
+- [Render modes](../../concepts/render-modes/)

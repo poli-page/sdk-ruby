@@ -9,9 +9,11 @@ AllCops:
     - "vendor/**/*"
     - "tmp/**/*"
     - "doc/**/*"
+    - "docs/**/*"
     - "coverage/**/*"
     - "pkg/**/*"
     - "examples/**/*"
+    - "scripts/**/*"
 
 # Documentation will be enforced via YARD --fail-on-warning in CI from Phase 6.
 Style/Documentation:

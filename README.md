@@ -7,7 +7,7 @@
 Official Ruby SDK for [Poli Page](https://poli.page) — render polished PDFs
 from HTML templates via the Poli Page API.
 
-→ API reference (auto-generated from source): **<https://rubydoc.info/gems/poli-page>**
+→ **Documentation**: <https://poli-page.github.io/sdk-ruby/>
 
 ## Install
 
@@ -264,7 +264,7 @@ end
 The full list of known API codes lives in `PoliPage::ErrorCodes` (see
 `lib/poli_page/errors.rb`).
 
-→ Full error reference: <https://rubydoc.info/gems/poli-page>
+→ Full error reference: <https://poli-page.github.io/sdk-ruby/reference/errors/>
 
 ## Cancellation
 
@@ -353,7 +353,7 @@ one job each on macOS and Windows with 3.4.
 ## Documentation & support
 
 - Platform docs: [docs.poli.page](https://docs.poli.page)
-- SDK API reference: [rubydoc.info/gems/poli-page](https://rubydoc.info/gems/poli-page)
+- SDK documentation: [poli-page.github.io/sdk-ruby](https://poli-page.github.io/sdk-ruby/)
 - Sign up & generate API keys: [app.poli.page](https://app.poli.page)
 - Issues: [github.com/poli-page/sdk-ruby/issues](https://github.com/poli-page/sdk-ruby/issues)
 
