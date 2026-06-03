@@ -320,7 +320,7 @@ client.render.pdf(project: "billing", template: "invoice", version: "1.0.0",
                   data: data, idempotency_key: "render-INV-001-2026-05")
 ```
 
-## Type system (RBS + Steep)
+## Type system
 
 The gem ships RBS signatures under `sig/`. Steep checks them against the
 implementation in CI. Consumers can opt into project-mode validation via
@@ -329,7 +329,7 @@ immediately if `project:`, `template:`, or `data:` are omitted.
 
 For Sorbet users: `.rbi` shipping is a post-1.0 enhancement.
 
-## Thread-safety & one-client-per-process
+## Concurrency & thread-safety
 
 A single `PoliPage::Client` instance is safe to share across threads.
 Configuration is immutable after `#initialize`; each request opens its
@@ -344,6 +344,12 @@ end.map(&:value)
 ```
 
 Build the client once at boot. Don't construct a new client per request.
+
+## Runtime support
+
+- Ruby 3.1+ (CRuby/MRI). Latest two minor releases tested in CI.
+- JRuby 9.4+ on a best-effort basis.
+- Linux and macOS in CI. Windows is supported but not exercised in CI.
 
 ## Requirements
 
