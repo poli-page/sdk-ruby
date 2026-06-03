@@ -41,6 +41,24 @@ module PoliPage
 
       false
     end
+
+    # Canonical wire payload for framework integrations:
+    # {code:, message:, status:, request_id:}. `status` surfaces 503 for
+    # connection failures, 504 for timeouts, the API HTTP status for
+    # status-bearing errors. The {#status} reader itself stays nil for
+    # transport-error instances — only the payload surfaces 503/504.
+    def to_payload
+      {
+        code: @code,
+        message: message,
+        status: payload_status,
+        request_id: @request_id,
+      }
+    end
+
+    def payload_status
+      @status
+    end
   end
 
   # API status errors. `status` carries the HTTP status; `code` is the
@@ -78,6 +96,10 @@ module PoliPage
       super(message, code: "network_error", status: nil, request_id: nil)
       @cause = cause
     end
+
+    def payload_status
+      503
+    end
   end
 
   class TimeoutError < Error
@@ -87,6 +109,10 @@ module PoliPage
       super("request timed out after #{timeout}s",
             code: "timeout", status: nil, request_id: nil)
       @timeout = timeout
+    end
+
+    def payload_status
+      504
     end
   end
 

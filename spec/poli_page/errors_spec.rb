@@ -96,6 +96,37 @@ RSpec.describe PoliPage::Error do
       expect(err.status).to eq(500)
     end
   end
+
+  describe "#to_payload" do
+    it "uses API status for status-bearing errors" do
+      err = PoliPage::AuthenticationError.new(
+        "Forbidden", code: "authentication_failed", status: 401, request_id: "req_abc"
+      )
+      expect(err.to_payload).to eq(
+        code: "authentication_failed",
+        message: "Forbidden",
+        status: 401,
+        request_id: "req_abc",
+      )
+    end
+
+    it "uses 503 for ConnectionError" do
+      err = PoliPage::ConnectionError.new(message: "dns")
+      expect(err.to_payload[:status]).to eq(503)
+      expect(err.status).to be_nil
+    end
+
+    it "uses 504 for TimeoutError" do
+      err = PoliPage::TimeoutError.new(timeout: 30)
+      expect(err.to_payload[:status]).to eq(504)
+      expect(err.status).to be_nil
+    end
+
+    it "request_id is nil when absent" do
+      err = PoliPage::ConnectionError.new(message: "dns")
+      expect(err.to_payload[:request_id]).to be_nil
+    end
+  end
 end
 
 RSpec.describe PoliPage::ErrorCodes do

@@ -55,11 +55,14 @@ module PoliPage
         end
         unless parsed.is_a?(Hash)
           return ["INTERNAL_ERROR",
-                  "API error #{status}: response body was not valid JSON"]
+                  "HTTP #{status}: response body was not valid JSON"]
         end
 
-        code = parsed["code"] || parsed["message"] || parsed["error"] || "unknown_error"
-        message = parsed["message"] || "API error (#{status}): #{code}"
+        # RFC 7807: prefer `detail` (specific reason) over `title` (generic name)
+        # over the legacy `message` field; fall back to a canned status string.
+        # Code is verbatim from the API — never inferred from message.
+        code = parsed["code"] || parsed["error"] || "unknown_error"
+        message = parsed["detail"] || parsed["title"] || parsed["message"] || "HTTP #{status}"
         [code, message]
       end
 

@@ -107,24 +107,43 @@ RSpec.describe PoliPage::Internal::HTTP do
       expect(result).to eq(["VALIDATION_ERROR", "data is required"])
     end
 
-    it "falls back to message as code when code is absent" do
+    it "code stays unknown_error when only message is present (no code stealing)" do
       result = described_class.parse_error_body('{"message":"something broke"}', 400)
-      expect(result).to eq(["something broke", "something broke"])
+      expect(result).to eq(["unknown_error", "something broke"])
     end
 
-    it "falls back to error field as code when code and message absent" do
+    it "falls back to error field as code" do
       result = described_class.parse_error_body('{"error":"oops"}', 400)
-      expect(result).to eq(["oops", "API error (400): oops"])
+      expect(result).to eq(["oops", "HTTP 400"])
     end
 
     it "returns unknown_error code when JSON has no recognised fields" do
       result = described_class.parse_error_body("{}", 400)
-      expect(result).to eq(["unknown_error", "API error (400): unknown_error"])
+      expect(result).to eq(["unknown_error", "HTTP 400"])
     end
 
     it "returns INTERNAL_ERROR when body is not valid JSON" do
       result = described_class.parse_error_body("not json", 502)
-      expect(result).to eq(["INTERNAL_ERROR", "API error 502: response body was not valid JSON"])
+      expect(result).to eq(["INTERNAL_ERROR", "HTTP 502: response body was not valid JSON"])
+    end
+
+    it "uses RFC 7807 detail as message" do
+      result = described_class.parse_error_body(
+        '{"code":"authentication_failed","detail":"Forbidden","title":"Authentication failed"}',
+        401
+      )
+      expect(result).to eq(["authentication_failed", "Forbidden"])
+    end
+
+    it "falls back to title when detail absent" do
+      result = described_class.parse_error_body('{"code":"forbidden","title":"Access denied"}', 403)
+      expect(result).to eq(["forbidden", "Access denied"])
+    end
+
+    it "does not synthesise an API error prefix" do
+      _, message = described_class.parse_error_body('{"code":"THUMBNAILS_NOT_AVAILABLE"}', 403)
+      expect(message).not_to include("API error")
+      expect(message).to eq("HTTP 403")
     end
 
     it "returns INTERNAL_ERROR for HTML error pages" do
