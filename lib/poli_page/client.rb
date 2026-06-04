@@ -171,11 +171,12 @@ module PoliPage
       response = @transport.execute(method: method, path: path, headers: headers, body: body)
       if (200..299).cover?(response.status)
         duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
-        fire_hook(@on_response, ResponseEvent.new(
-          status: response.status,
-          request_id: response.headers[Internal::Constants::HEADER_REQUEST_ID],
-          duration_ms: duration_ms
-        ))
+        fire_hook(@on_response,
+                  ResponseEvent.new(
+                    status: response.status,
+                    request_id: response.headers[Internal::Constants::HEADER_REQUEST_ID],
+                    duration_ms: duration_ms
+                  ))
         return { ok: true, response: response }
       end
 
