@@ -166,8 +166,17 @@ module PoliPage
       url = Internal::HTTP.build_url(@base_url, path)
       fire_hook(@on_request,
                 RequestEvent.new(method: method.to_s.upcase, url: url, attempt: attempt))
+      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = @transport.execute(method: method, path: path, headers: headers, body: body)
-      return { ok: true, response: response } if (200..299).cover?(response.status)
+      if (200..299).cover?(response.status)
+        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
+        fire_hook(@on_response, ResponseEvent.new(
+          status: response.status,
+          request_id: response.headers[Internal::Constants::HEADER_REQUEST_ID],
+          duration_ms: duration_ms
+        ))
+        return { ok: true, response: response }
+      end
 
       build_error_result(response)
     rescue PoliPage::TimeoutError, PoliPage::ConnectionError => e
