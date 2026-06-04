@@ -76,4 +76,22 @@ RSpec.describe PoliPage::InlineModeInput do
     expect(input.orientation).to be_nil
     expect(input.metadata).to be_nil
   end
+
+  it "carries an optional idempotency_key field (Data-shape parity with resource kwargs)" do
+    input = described_class.new(template: "<p>x</p>", data: {},
+                                idempotency_key: "caller-key-456")
+    expect(input.idempotency_key).to eq("caller-key-456")
+  end
+
+  it "defaults idempotency_key to nil and strips it from .to_h when unset" do
+    input = described_class.new(template: "<p>x</p>", data: {})
+    expect(input.idempotency_key).to be_nil
+    expect(input.to_h).not_to have_key(:idempotency_key)
+  end
+
+  it "includes idempotency_key in .to_h when set" do
+    input = described_class.new(template: "<p>x</p>", data: {},
+                                idempotency_key: "caller-key-456")
+    expect(input.to_h).to include(idempotency_key: "caller-key-456")
+  end
 end

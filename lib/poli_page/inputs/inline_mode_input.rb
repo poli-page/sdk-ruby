@@ -10,7 +10,8 @@ module PoliPage
     :format,
     :orientation,
     :locale,
-    :metadata
+    :metadata,
+    :idempotency_key
   ) do
     def to_h
       super.compact
@@ -20,9 +21,11 @@ module PoliPage
   class << InlineModeInput
     alias _strict_new new
 
-    def new(template:, data:, format: nil, orientation: nil, locale: nil, metadata: nil)
+    def new(template:, data:, format: nil, orientation: nil, locale: nil,
+            metadata: nil, idempotency_key: nil)
       _strict_new(template: template, data: data, format: format,
-                  orientation: orientation, locale: locale, metadata: metadata)
+                  orientation: orientation, locale: locale, metadata: metadata,
+                  idempotency_key: idempotency_key)
     end
   end
 end
