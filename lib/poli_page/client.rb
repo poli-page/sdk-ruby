@@ -53,7 +53,7 @@ module PoliPage
                    max_retries: Internal::Constants::DEFAULT_MAX_RETRIES,
                    retry_delay: Internal::Constants::DEFAULT_RETRY_DELAY,
                    timeout: Internal::Constants::DEFAULT_TIMEOUT,
-                   logger: nil, on_retry: nil, on_error: nil,
+                   logger: nil, on_request: nil, on_retry: nil, on_error: nil,
                    proxy: nil, ca_file: nil, ca_path: nil)
       raise InvalidOptionsError, "api_key is required" if api_key.nil? || api_key.empty?
 
@@ -63,6 +63,7 @@ module PoliPage
       @retry_delay = retry_delay
       @timeout     = timeout
       @logger      = logger
+      @on_request  = on_request
       @on_retry    = on_retry
       @on_error    = on_error
       @proxy       = proxy
