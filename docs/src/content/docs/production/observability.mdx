@@ -46,7 +46,7 @@ require "poli_page"
 client = PoliPage::Client.new(
   api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
   logger:   Logger.new($stdout),
-  on_retry: ->(event) { warn "retry #{event.attempt} after #{event.delay}s: #{event.reason.code}" },
+  on_retry: ->(event) { warn "retry #{event.attempt} after #{event.delay_ms}ms: #{event.reason.code}" },
   on_error: ->(err)   { warn "terminal: #{err.class}: #{err.code}" }
 )
 

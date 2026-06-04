@@ -29,7 +29,7 @@ client = PoliPage::Client.new(
   max_retries: 3,
   retry_delay: 0.25,
   logger:      Logger.new($stdout),
-  on_retry:    ->(event) { puts "retry attempt #{event.attempt} after #{event.delay}s" }
+  on_retry:    ->(event) { puts "retry attempt #{event.attempt} after #{event.delay_ms}ms" }
 )
 ```
 

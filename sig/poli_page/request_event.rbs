@@ -1,0 +1,9 @@
+module PoliPage
+  class RequestEvent < Data
+    attr_reader method: String
+    attr_reader url: String
+    attr_reader attempt: Integer
+
+    def self.new: (method: String, url: String, attempt: Integer) -> RequestEvent
+  end
+end

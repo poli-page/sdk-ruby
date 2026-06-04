@@ -135,6 +135,8 @@ RSpec.describe PoliPage::Client do
       expect(events.size).to eq(1)
       expect(events.first).to be_a(PoliPage::RetryEvent)
       expect(events.first.attempt).to eq(2)
+      expect(events.first.delay_ms).to be_a(Integer)
+      expect(events.first.delay_ms).to be > 0
       expect(events.first.reason).to be_a(PoliPage::APIError)
     end
 

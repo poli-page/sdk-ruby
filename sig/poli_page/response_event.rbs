@@ -1,0 +1,9 @@
+module PoliPage
+  class ResponseEvent < Data
+    attr_reader status: Integer
+    attr_reader request_id: String?
+    attr_reader duration_ms: Integer
+
+    def self.new: (status: Integer, request_id: String?, duration_ms: Integer) -> ResponseEvent
+  end
+end

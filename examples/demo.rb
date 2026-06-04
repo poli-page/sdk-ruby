@@ -32,7 +32,7 @@ client = PoliPage::Client.new(
   api_key:  api_key,
   base_url: base_url,
   on_retry: ->(event) {
-    puts Demo.yellow("  ↻") + Demo.dim("  retry attempt #{event.attempt} after #{event.delay.round(3)}s: #{event.reason.code}")
+    puts Demo.yellow("  ↻") + Demo.dim("  retry attempt #{event.attempt} after #{event.delay_ms}ms: #{event.reason.code}")
   },
   on_error: ->(err) {
     puts Demo.red("  ✗") + Demo.dim("  terminal error: #{err.class}: #{err.code}")

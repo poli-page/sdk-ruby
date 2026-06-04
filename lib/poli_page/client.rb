@@ -148,7 +148,8 @@ module PoliPage
       delay = Internal::HTTP.compute_backoff(attempt: attempt, base_delay: @retry_delay,
                                              retry_after: state[:next_retry_after])
       fire_hook(@on_retry,
-                RetryEvent.new(attempt: attempt + 1, delay: delay, reason: state[:last_error]))
+                RetryEvent.new(attempt: attempt + 1, delay_ms: (delay * 1000).round,
+                               reason: state[:last_error]))
       sleep(delay)
     end
 

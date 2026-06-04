@@ -1,4 +1,6 @@
 module PoliPage
+  type request_hook = ^(PoliPage::RequestEvent) -> void
+  type response_hook = ^(PoliPage::ResponseEvent) -> void
   type retry_hook = ^(PoliPage::RetryEvent) -> void
   type error_hook = ^(PoliPage::Error) -> void
 
@@ -12,7 +14,9 @@ module PoliPage
 
     def initialize: (api_key: String, ?base_url: String, ?max_retries: Integer,
                      ?retry_delay: Numeric, ?timeout: Numeric,
-                     ?logger: untyped?, ?on_retry: retry_hook?,
+                     ?logger: untyped?, ?on_request: request_hook?,
+                     ?on_response: response_hook?,
+                     ?on_retry: retry_hook?,
                      ?on_error: error_hook?,
                      ?proxy: String?, ?ca_file: String?, ?ca_path: String?) -> void
 
