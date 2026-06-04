@@ -13,7 +13,8 @@ module PoliPage
     :format,
     :orientation,
     :locale,
-    :metadata
+    :metadata,
+    :idempotency_key
   ) do
     # @return [Hash] kwargs ready to splat into the matching `client.render.*` method
     def to_h
@@ -28,10 +29,10 @@ module PoliPage
     alias _strict_new new
 
     def new(project:, template:, data:, version: nil, format: nil,
-            orientation: nil, locale: nil, metadata: nil)
+            orientation: nil, locale: nil, metadata: nil, idempotency_key: nil)
       _strict_new(project: project, template: template, data: data,
                   version: version, format: format, orientation: orientation,
-                  locale: locale, metadata: metadata)
+                  locale: locale, metadata: metadata, idempotency_key: idempotency_key)
     end
   end
 end
