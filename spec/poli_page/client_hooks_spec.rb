@@ -14,6 +14,13 @@ RSpec.describe PoliPage::Client do
     end
   end
 
+  describe "on_response constructor kwarg" do
+    it "accepts on_response: as a callable" do
+      hook = ->(_e) {}
+      expect { described_class.new(api_key: api_key, on_response: hook) }.not_to raise_error
+    end
+  end
+
   describe "on_request firing" do
     let(:body) { '{"html":"x","totalPages":1,"environment":"sandbox"}' }
 
