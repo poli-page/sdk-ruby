@@ -130,7 +130,8 @@ module PoliPage
 
       (0..@max_retries).each do |attempt|
         sleep_before_retry(attempt, state) if attempt.positive?
-        result = send_once(method: method, path: path, body: body, idempotency_key: idempotency_key)
+        result = send_once(method: method, path: path, body: body,
+                           idempotency_key: idempotency_key, attempt: attempt + 1)
         return result[:response] if result[:ok]
 
         state[:last_error] = result[:error]
@@ -154,12 +155,15 @@ module PoliPage
       raise error
     end
 
-    def send_once(method:, path:, body:, idempotency_key:)
+    def send_once(method:, path:, body:, idempotency_key:, attempt:)
       headers = Internal::HTTP.build_headers(
         method: method, api_key: @api_key,
         idempotency_key: idempotency_key,
         user_agent: "poli-page-sdk-ruby/#{PoliPage::VERSION}"
       )
+      url = Internal::HTTP.build_url(@base_url, path)
+      fire_hook(@on_request,
+                RequestEvent.new(method: method.to_s.upcase, url: url, attempt: attempt))
       response = @transport.execute(method: method, path: path, headers: headers, body: body)
       return { ok: true, response: response } if (200..299).cover?(response.status)
 

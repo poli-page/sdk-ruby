@@ -13,4 +13,45 @@ RSpec.describe PoliPage::Client do
       expect { described_class.new(api_key: api_key) }.not_to raise_error
     end
   end
+
+  describe "on_request firing" do
+    let(:body) { '{"html":"x","totalPages":1,"environment":"sandbox"}' }
+
+    it "fires on_request before each HTTP attempt with 1-based counter" do
+      events = []
+      client = described_class.new(api_key: api_key, on_request: ->(e) { events << e })
+      allow(client).to receive(:sleep)
+      stub_request(:post, "https://api.poli.page/v1/render/preview")
+        .to_return({ status: 500, body: "{}" }, { status: 200, body: body })
+
+      client.render.preview(template: "x", data: {})
+
+      expect(events.size).to eq(2)
+      expect(events.map(&:attempt)).to eq([1, 2])
+      expect(events.map(&:method)).to all(eq("POST"))
+      expect(events.map(&:url)).to all(eq("https://api.poli.page/v1/render/preview"))
+      expect(events.first).to be_a(PoliPage::RequestEvent)
+    end
+
+    it "fires on_request even when the request will fail terminally" do
+      events = []
+      client = described_class.new(api_key: api_key, max_retries: 0,
+                                   on_request: ->(e) { events << e })
+      stub_request(:post, "https://api.poli.page/v1/render/preview")
+        .to_return(status: 400, body: '{"code":"VALIDATION_ERROR","message":"bad"}')
+
+      expect { client.render.preview(template: "x", data: {}) }.to raise_error(PoliPage::ValidationError)
+      expect(events.size).to eq(1)
+      expect(events.first.attempt).to eq(1)
+    end
+
+    it "swallows exceptions raised inside on_request (safe-fire)" do
+      client = described_class.new(api_key: api_key, max_retries: 0,
+                                   on_request: ->(_e) { raise "hook exploded" })
+      stub_request(:post, "https://api.poli.page/v1/render/preview")
+        .to_return(status: 200, body: '{"html":"x","totalPages":1,"environment":"sandbox"}')
+
+      expect { client.render.preview(template: "x", data: {}) }.not_to raise_error
+    end
+  end
 end
