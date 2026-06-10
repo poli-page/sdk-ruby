@@ -38,8 +38,8 @@ Run all of the above before pushing — `scripts/install-hooks.sh` writes a
 
 ## Integration tests
 
-Integration tests hit the develop API (`https://api-develop.poli.page`).
-They're skipped by default; opt in with `INTEGRATION=1`:
+Integration tests hit the live API. They're skipped by default; opt in
+with `INTEGRATION=1`:
 
 ```bash
 export POLI_PAGE_API_KEY=pp_test_...

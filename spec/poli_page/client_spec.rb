@@ -20,12 +20,12 @@ RSpec.describe PoliPage::Client do
     it "accepts overrides for base_url / max_retries / retry_delay / timeout" do
       client = described_class.new(
         api_key: api_key,
-        base_url: "https://api-develop.poli.page",
+        base_url: "https://api.example.com",
         max_retries: 5,
         retry_delay: 0.25,
         timeout: 30
       )
-      expect(client.base_url).to eq("https://api-develop.poli.page")
+      expect(client.base_url).to eq("https://api.example.com")
       expect(client.max_retries).to eq(5)
       expect(client.retry_delay).to eq(0.25)
       expect(client.timeout).to eq(30)

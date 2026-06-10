@@ -17,10 +17,9 @@ RSpec.describe "PoliPage::Client#documents.* (integration)" do
   end
 
   let(:client) do
-    PoliPage::Client.new(
-      api_key:  ENV.fetch("POLI_PAGE_API_KEY"),
-      base_url: ENV.fetch("POLI_PAGE_BASE_URL", "https://api-develop.poli.page")
-    )
+    opts = { api_key: ENV.fetch("POLI_PAGE_API_KEY") }
+    opts[:base_url] = ENV["POLI_PAGE_TEST_BASE_URL"] if ENV["POLI_PAGE_TEST_BASE_URL"]
+    PoliPage::Client.new(**opts)
   end
 
   let(:project)  { ENV.fetch("POLI_PAGE_TEST_PROJECT", "getting-started") }

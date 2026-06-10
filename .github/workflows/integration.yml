@@ -1,12 +1,10 @@
 name: Integration
 
-# Hits the deployed develop API. Gated by `secrets.POLI_PAGE_API_KEY` —
-# the job becomes a no-op skip on forks/PRs without secret access. See
-# sdk-ruby-plan.md §16.4.
+# Hits the live API. Gated by `secrets.POLI_PAGE_API_KEY` — the job becomes
+# a no-op skip on forks/PRs without secret access.
 #
-# Defaults to https://api-develop.poli.page; override via
-# `vars.POLI_PAGE_BASE_URL`. Test fixture project/template/version
-# come from repo variables (mirrors the Node integration tests).
+# Override the SDK's default API host via `secrets.POLI_PAGE_TEST_BASE_URL`.
+# Test fixture project/template/version come from repo variables.
 
 on:
   schedule:
@@ -31,7 +29,7 @@ jobs:
     env:
       INTEGRATION: "1"
       POLI_PAGE_API_KEY: ${{ secrets.POLI_PAGE_API_KEY }}
-      POLI_PAGE_BASE_URL: ${{ vars.POLI_PAGE_BASE_URL }}
+      POLI_PAGE_TEST_BASE_URL: ${{ secrets.POLI_PAGE_TEST_BASE_URL }}
       POLI_PAGE_TEST_PROJECT: ${{ vars.POLI_PAGE_TEST_PROJECT }}
       POLI_PAGE_TEST_TEMPLATE: ${{ vars.POLI_PAGE_TEST_TEMPLATE }}
       POLI_PAGE_TEST_VERSION: ${{ vars.POLI_PAGE_TEST_VERSION }}

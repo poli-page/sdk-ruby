@@ -29,7 +29,7 @@ module PoliPage
   # @example Construct with full configuration
   #   client = PoliPage::Client.new(
   #     api_key:     ENV.fetch("POLI_PAGE_API_KEY"),
-  #     base_url:    "https://api-develop.poli.page",
+  #     base_url:    "https://api.example.com",
   #     max_retries: 3,
   #     retry_delay: 0.5,                            # seconds
   #     timeout:     30,                             # seconds

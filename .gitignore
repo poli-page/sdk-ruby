@@ -45,3 +45,8 @@ scripts/extract-api/.cache/
 ## Sorbet / RBS caches
 /sorbet/rbi/hidden-definitions/
 /sorbet/rbi/todo.rbi
+CLAUDE.md
+docs/plan/
+docs/spec/
+sdk-*-plan.md
+sdk-*-specifications.md
