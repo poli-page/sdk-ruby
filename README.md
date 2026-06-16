@@ -2,9 +2,9 @@
 
 [![Gem](https://img.shields.io/gem/v/poli-page?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff&label=Gem&color=0ea5e9)](https://rubygems.org/gems/poli-page)
 [![Downloads](https://img.shields.io/gem/dt/poli-page?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff&label=Downloads&color=0ea5e9)](https://rubygems.org/gems/poli-page)
-[![Ci](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/ci.yml?branch=main&style=flat&labelColor=334155&logo=githubactions&logoColor=ffffff&label=Ci)](https://github.com/poli-page/sdk-ruby/actions/workflows/ci.yml)
-[![Codeql](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/codeql.yml?branch=main&style=flat&labelColor=334155&logo=github&logoColor=ffffff&label=Codeql)](https://github.com/poli-page/sdk-ruby/actions/workflows/codeql.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/poli-page/sdk-ruby?style=flat&labelColor=334155&logo=codecov&logoColor=ffffff&label=Coverage)](https://codecov.io/gh/poli-page/sdk-ruby)
+[![Ci](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/ci.yml?branch=main&style=flat&labelColor=334155&logo=githubactions&logoColor=ffffff&label=Ci&color=059669)](https://github.com/poli-page/sdk-ruby/actions/workflows/ci.yml)
+[![Codeql](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/codeql.yml?branch=main&style=flat&labelColor=334155&logo=github&logoColor=ffffff&label=Codeql&color=059669)](https://github.com/poli-page/sdk-ruby/actions/workflows/codeql.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/poli-page/sdk-ruby?style=flat&labelColor=334155&logo=codecov&logoColor=ffffff&label=Coverage&color=059669)](https://codecov.io/gh/poli-page/sdk-ruby)
 [![Ruby](https://img.shields.io/badge/Ruby-3.2%20%7C%203.3%20%7C%203.4-0ea5e9?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/blob/main/.github/workflows/ci.yml)
 [![Types](https://img.shields.io/badge/Types-RBS-0ea5e9?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/tree/main/sig)
 [![Style](https://img.shields.io/badge/Style-Rubocop-0ea5e9?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff)](https://github.com/rubocop/rubocop)
