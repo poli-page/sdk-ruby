@@ -13,8 +13,8 @@ group :development, :test do
   gem "rake", "~> 13.2", require: false
   gem "rbs", "~> 4.0", require: false
   gem "rspec", "~> 3.13"
-  gem "rubocop", "~> 1.69", require: false
-  gem "rubocop-rspec", "~> 3.3", require: false
+  gem "rubocop", "~> 1.88", require: false
+  gem "rubocop-rspec", "~> 3.10", require: false
   gem "simplecov", "~> 0.22", require: false
   # Emits coverage/coverage.lcov for the Codecov uploader (CI step in
   # `.github/workflows/ci.yml`). The HTML report under coverage/ is still
@@ -23,5 +23,5 @@ group :development, :test do
   gem "steep", "~> 2.0", require: false
   gem "vcr", "~> 6.3"
   gem "webmock", "~> 3.24"
-  gem "yard", "~> 0.9.37", require: false
+  gem "yard", "~> 0.9.44", require: false
 end
