@@ -8,6 +8,7 @@
 [![Ruby](https://img.shields.io/badge/Ruby-3.2%20%7C%203.3%20%7C%203.4-blue?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/blob/main/.github/workflows/ci.yml)
 [![Types](https://img.shields.io/badge/Types-RBS-blue?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/tree/main/sig)
 [![Style](https://img.shields.io/badge/Style-Rubocop-blue?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/rubocop/rubocop)
+[![Deps](https://img.shields.io/badge/Deps-up%20to%20date-brightgreen?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/network/dependencies)
 [![Docs](https://img.shields.io/badge/Docs-online-brightgreen?style=flat&logo=readthedocs&logoColor=ffffff)](https://poli-page.github.io/sdk-ruby/)
 [![License](https://img.shields.io/github/license/poli-page/sdk-ruby?style=flat&logo=gnu&logoColor=ffffff&label=License)](LICENSE)
 
