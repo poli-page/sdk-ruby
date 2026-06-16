@@ -13,6 +13,13 @@
 # the repo root so YARD finds `lib/**/*.rb` and the `.yardoc` cache lives
 # under `scripts/extract-api/.cache/`.
 
+# The npm script (`docs/package.json` → `extract`) invokes us with bare
+# `ruby ../scripts/extract-api/main.rb`, so the YARD gem isn't on the load
+# path unless we activate the repo-root bundle ourselves. Pin BUNDLE_GEMFILE
+# so it works from any working directory (CI runs from `docs/`).
+ENV["BUNDLE_GEMFILE"] ||= File.expand_path("../../Gemfile", __dir__)
+require "bundler/setup"
+
 require "fileutils"
 require "json"
 
