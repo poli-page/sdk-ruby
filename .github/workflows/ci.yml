@@ -8,6 +8,9 @@ on:
 
 permissions:
   contents: read
+  # Required by the Codecov uploader (use_oidc: true) so it can mint a
+  # short-lived OIDC token instead of relying on a CODECOV_TOKEN secret.
+  id-token: write
 
 # All third-party Actions pinned to 40-char commit SHAs per
 # sdk-ruby-plan.md §16.6 (supply-chain hardening). The trailing comment
@@ -54,6 +57,17 @@ jobs:
 
       - name: RSpec (unit)
         run: bundle exec rspec spec
+
+      - name: Upload coverage to Codecov
+        # Only upload once per CI run — the matrix would otherwise upload the
+        # same report 5×. Tokenless: Codecov uses the GitHub OIDC token for
+        # public-repo uploads, so no CODECOV_TOKEN secret is required.
+        if: matrix.ruby == '3.4' && matrix.os == 'ubuntu-latest'
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          files: ./coverage/lcov.info
+          use_oidc: true
+          fail_ci_if_error: false
 
       - name: bundler-audit
         run: bundle exec bundle-audit check --update
