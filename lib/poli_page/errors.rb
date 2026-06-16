@@ -43,7 +43,7 @@ module PoliPage
     end
 
     # Canonical wire payload for framework integrations:
-    # {code:, message:, status:, request_id:}. `status` surfaces 503 for
+    # `{code:, message:, status:, request_id:}`. `status` surfaces 503 for
     # connection failures, 504 for timeouts, the API HTTP status for
     # status-bearing errors. The {#status} reader itself stays nil for
     # transport-error instances — only the payload surfaces 503/504.

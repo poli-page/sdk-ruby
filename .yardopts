@@ -1,0 +1,7 @@
+--no-private
+--markup markdown
+lib/**/*.rb
+-
+LICENSE
+CHANGELOG.md
+MIGRATION.md
