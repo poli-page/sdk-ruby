@@ -1,15 +1,15 @@
 # Poli Page SDK for Ruby
 
-[![Gem](https://img.shields.io/gem/v/poli-page?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff&label=Gem)](https://rubygems.org/gems/poli-page)
-[![Downloads](https://img.shields.io/gem/dt/poli-page?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff&label=Downloads)](https://rubygems.org/gems/poli-page)
-[![Ci](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/ci.yml?branch=main&style=flat&labelColor=334155&logo=githubactions&logoColor=ffffff&label=Ci)](https://github.com/poli-page/sdk-ruby/actions/workflows/ci.yml)
-[![Codeql](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/codeql.yml?branch=main&style=flat&labelColor=334155&logo=github&logoColor=ffffff&label=Codeql)](https://github.com/poli-page/sdk-ruby/actions/workflows/codeql.yml)
-[![Coverage](https://img.shields.io/codecov/c/github/poli-page/sdk-ruby?style=flat&labelColor=334155&logo=codecov&logoColor=ffffff&label=Coverage)](https://codecov.io/gh/poli-page/sdk-ruby)
-[![Ruby](https://img.shields.io/badge/Ruby-3.2%20%7C%203.3%20%7C%203.4-blue?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/blob/main/.github/workflows/ci.yml)
-[![Types](https://img.shields.io/badge/Types-RBS-blue?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/tree/main/sig)
-[![Style](https://img.shields.io/badge/Style-Rubocop-blue?style=flat&labelColor=334155&logo=ruby&logoColor=ffffff)](https://github.com/rubocop/rubocop)
-[![Docs](https://img.shields.io/badge/Docs-online-brightgreen?style=flat&labelColor=334155&logo=readthedocs&logoColor=ffffff)](https://poli-page.github.io/sdk-ruby/)
-[![License](https://img.shields.io/github/license/poli-page/sdk-ruby?style=flat&labelColor=334155&logo=gnu&logoColor=ffffff&label=License)](LICENSE)
+[![Gem](https://img.shields.io/gem/v/poli-page?style=flat&logo=ruby&logoColor=ffffff&label=Gem)](https://rubygems.org/gems/poli-page)
+[![Downloads](https://img.shields.io/gem/dt/poli-page?style=flat&logo=ruby&logoColor=ffffff&label=Downloads)](https://rubygems.org/gems/poli-page)
+[![Ci](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/ci.yml?branch=main&style=flat&logo=githubactions&logoColor=ffffff&label=Ci)](https://github.com/poli-page/sdk-ruby/actions/workflows/ci.yml)
+[![Codeql](https://img.shields.io/github/actions/workflow/status/poli-page/sdk-ruby/codeql.yml?branch=main&style=flat&logo=github&logoColor=ffffff&label=Codeql)](https://github.com/poli-page/sdk-ruby/actions/workflows/codeql.yml)
+[![Coverage](https://img.shields.io/codecov/c/github/poli-page/sdk-ruby?style=flat&logo=codecov&logoColor=ffffff&label=Coverage)](https://codecov.io/gh/poli-page/sdk-ruby)
+[![Ruby](https://img.shields.io/badge/Ruby-3.2%20%7C%203.3%20%7C%203.4-blue?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/blob/main/.github/workflows/ci.yml)
+[![Types](https://img.shields.io/badge/Types-RBS-blue?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/poli-page/sdk-ruby/tree/main/sig)
+[![Style](https://img.shields.io/badge/Style-Rubocop-blue?style=flat&logo=ruby&logoColor=ffffff)](https://github.com/rubocop/rubocop)
+[![Docs](https://img.shields.io/badge/Docs-online-brightgreen?style=flat&logo=readthedocs&logoColor=ffffff)](https://poli-page.github.io/sdk-ruby/)
+[![License](https://img.shields.io/github/license/poli-page/sdk-ruby?style=flat&logo=gnu&logoColor=ffffff&label=License)](LICENSE)
 
 Official Ruby SDK for [Poli Page](https://poli.page) — render polished PDFs
 from HTML templates via the Poli Page API.
