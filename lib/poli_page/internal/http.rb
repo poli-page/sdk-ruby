@@ -48,11 +48,7 @@ module PoliPage
       # @param status [Integer]
       # @return       [Array(String, String)] `[code, message]`
       def parse_error_body(body, status)
-        parsed = begin
-          JSON.parse(body)
-        rescue JSON::ParserError, TypeError
-          nil
-        end
+        parsed = parse_json_or_nil(body)
         unless parsed.is_a?(Hash)
           return ["INTERNAL_ERROR",
                   "HTTP #{status}: response body was not valid JSON"]
@@ -61,9 +57,15 @@ module PoliPage
         # RFC 7807: prefer `detail` (specific reason) over `title` (generic name)
         # over the legacy `message` field; fall back to a canned status string.
         # Code is verbatim from the API — never inferred from message.
-        code = parsed["code"] || parsed["error"] || "unknown_error"
-        message = parsed["detail"] || parsed["title"] || parsed["message"] || "HTTP #{status}"
+        code = parsed.values_at("code", "error").compact.first || "unknown_error"
+        message = parsed.values_at("detail", "title", "message").compact.first || "HTTP #{status}"
         [code, message]
+      end
+
+      def parse_json_or_nil(body)
+        JSON.parse(body)
+      rescue JSON::ParserError, TypeError
+        nil
       end
 
       # Parse the `Retry-After` response header. Accepts an integer number

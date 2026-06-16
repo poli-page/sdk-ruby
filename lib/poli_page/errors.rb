@@ -52,7 +52,7 @@ module PoliPage
         code: @code,
         message: message,
         status: payload_status,
-        request_id: @request_id,
+        request_id: @request_id
       }
     end
 

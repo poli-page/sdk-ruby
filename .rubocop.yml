@@ -54,7 +54,7 @@ Metrics/ClassLength:
   # `Client` is the documented public-surface entry point — most of its
   # length is YARD docstrings + the constructor; the actual method count
   # is small. Specs are excluded outright.
-  Max: 120
+  Max: 140
   Exclude:
     - "spec/**/*"
 
@@ -114,8 +114,9 @@ RSpec/SubjectStub:
 
 # Public SDK methods deliberately take many keyword arguments — every render
 # input field is its own kwarg by spec design (sdk-ruby-plan.md §9.1). The
-# default cap of 5 is too low; raise to 12, and exempt optional kwargs.
+# default cap of 5 is too low; raise to 13 (Client#initialize hits this with
+# its 13 distinct configuration kwargs), and exempt optional kwargs.
 Metrics/ParameterLists:
-  Max: 12
-  MaxOptionalParameters: 12
+  Max: 13
+  MaxOptionalParameters: 13
   CountKeywordArgs: true

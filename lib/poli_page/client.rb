@@ -71,10 +71,7 @@ module PoliPage
       @proxy       = proxy
       @ca_file     = ca_file
       @ca_path     = ca_path
-      @transport   = Internal::Transport.new(base_url: base_url, timeout: timeout,
-                                             proxy: proxy, ca_file: ca_file, ca_path: ca_path)
-      @render      = Resources::Render.new(self)
-      @documents   = Resources::Documents.new(self)
+      init_collaborators
     end
 
     # Redacted `#inspect`. Ruby's default would dump `@api_key` into any
@@ -127,6 +124,13 @@ module PoliPage
 
     private
 
+    def init_collaborators
+      @transport = Internal::Transport.new(base_url: @base_url, timeout: @timeout,
+                                           proxy: @proxy, ca_file: @ca_file, ca_path: @ca_path)
+      @render = Resources::Render.new(self)
+      @documents = Resources::Documents.new(self)
+    end
+
     def run_with_retry(method:, path:, body:, idempotency_key:)
       state = { last_error: nil, next_retry_after: nil }
 
@@ -136,12 +140,16 @@ module PoliPage
                            idempotency_key: idempotency_key, attempt: attempt + 1)
         return result[:response] if result[:ok]
 
-        state[:last_error] = result[:error]
-        state[:next_retry_after] = result[:retry_after]
+        record_failure(state, result)
         raise_terminal(state[:last_error]) unless result[:retryable]
       end
 
       raise_terminal(state[:last_error])
+    end
+
+    def record_failure(state, result)
+      state[:last_error] = result[:error]
+      state[:next_retry_after] = result[:retry_after]
     end
 
     def sleep_before_retry(attempt, state)
@@ -159,30 +167,36 @@ module PoliPage
     end
 
     def send_once(method:, path:, body:, idempotency_key:, attempt:)
-      headers = Internal::HTTP.build_headers(
-        method: method, api_key: @api_key,
-        idempotency_key: idempotency_key,
-        user_agent: "poli-page-sdk-ruby/#{PoliPage::VERSION}"
-      )
+      headers = build_request_headers(method, idempotency_key)
       url = Internal::HTTP.build_url(@base_url, path)
       fire_hook(@on_request,
                 RequestEvent.new(method: method.to_s.upcase, url: url, attempt: attempt))
-      t0 = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = @transport.execute(method: method, path: path, headers: headers, body: body)
-      if (200..299).cover?(response.status)
-        duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - t0) * 1000).round
-        fire_hook(@on_response,
-                  ResponseEvent.new(
-                    status: response.status,
-                    request_id: response.headers[Internal::Constants::HEADER_REQUEST_ID],
-                    duration_ms: duration_ms
-                  ))
-        return { ok: true, response: response }
-      end
+      return success_result(response, started_at) if (200..299).cover?(response.status)
 
       build_error_result(response)
     rescue PoliPage::TimeoutError, PoliPage::ConnectionError => e
       { ok: false, error: e, retry_after: nil, retryable: true }
+    end
+
+    def build_request_headers(method, idempotency_key)
+      Internal::HTTP.build_headers(
+        method: method, api_key: @api_key,
+        idempotency_key: idempotency_key,
+        user_agent: "poli-page-sdk-ruby/#{PoliPage::VERSION}"
+      )
+    end
+
+    def success_result(response, started_at)
+      duration_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at) * 1000).round
+      fire_hook(@on_response,
+                ResponseEvent.new(
+                  status: response.status,
+                  request_id: response.headers[Internal::Constants::HEADER_REQUEST_ID],
+                  duration_ms: duration_ms
+                ))
+      { ok: true, response: response }
     end
 
     def build_error_result(response)

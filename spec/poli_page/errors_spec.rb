@@ -106,7 +106,7 @@ RSpec.describe PoliPage::Error do
         code: "authentication_failed",
         message: "Forbidden",
         status: 401,
-        request_id: "req_abc",
+        request_id: "req_abc"
       )
     end
 

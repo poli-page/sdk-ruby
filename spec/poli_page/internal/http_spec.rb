@@ -132,7 +132,7 @@ RSpec.describe PoliPage::Internal::HTTP do
         '{"code":"authentication_failed","detail":"Forbidden","title":"Authentication failed"}',
         401
       )
-      expect(result).to eq(["authentication_failed", "Forbidden"])
+      expect(result).to eq(%w[authentication_failed Forbidden])
     end
 
     it "falls back to title when detail absent" do

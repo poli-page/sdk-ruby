@@ -9,5 +9,9 @@ module PoliPage
   # - `url`     [String]  fully-resolved request URL (base_url + path).
   # - `attempt` [Integer] 1-based attempt counter — first send is `1`, the
   #                       first retry is `2`, etc.
-  RequestEvent = Data.define(:method, :url, :attempt)
+  #
+  # Naming `:method` shadows `Object#method`, but the field name is fixed by
+  # Node-SDK parity (`RequestEvent.method` is the public payload shape).
+  # Callers won't reach for `event.method(:foo)` on a value-typed event.
+  RequestEvent = Data.define(:method, :url, :attempt) # rubocop:disable Lint/DataDefineOverride
 end
