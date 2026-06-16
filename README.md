@@ -1,11 +1,13 @@
 # Poli Page SDK for Ruby
 
 [![Gem Version](https://badge.fury.io/rb/poli-page.svg)](https://rubygems.org/gems/poli-page)
+[![Gem downloads](https://img.shields.io/gem/dt/poli-page.svg)](https://rubygems.org/gems/poli-page)
 [![CI](https://github.com/poli-page/sdk-ruby/actions/workflows/ci.yml/badge.svg)](https://github.com/poli-page/sdk-ruby/actions/workflows/ci.yml)
 [![CodeQL](https://github.com/poli-page/sdk-ruby/actions/workflows/codeql.yml/badge.svg)](https://github.com/poli-page/sdk-ruby/actions/workflows/codeql.yml)
 [![codecov](https://codecov.io/gh/poli-page/sdk-ruby/branch/main/graph/badge.svg)](https://codecov.io/gh/poli-page/sdk-ruby)
 [![Ruby](https://img.shields.io/badge/ruby-3.2%20%7C%203.3%20%7C%203.4-CC342D?logo=ruby&logoColor=white)](https://github.com/poli-page/sdk-ruby/blob/main/.github/workflows/ci.yml)
 [![RBS](https://img.shields.io/badge/types-RBS-blue?logo=ruby&logoColor=white)](https://github.com/poli-page/sdk-ruby/tree/main/sig)
+[![code style: rubocop](https://img.shields.io/badge/code_style-rubocop-CC342D?logo=ruby&logoColor=white)](https://github.com/rubocop/rubocop)
 [![Docs](https://img.shields.io/badge/docs-online-brightgreen)](https://poli-page.github.io/sdk-ruby/)
 [![License](https://img.shields.io/github/license/poli-page/sdk-ruby.svg)](LICENSE)
 
