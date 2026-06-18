@@ -1,5 +1,12 @@
 # frozen_string_literal: true
 
+# Defines `build`, `install`, and `release` (build + tag-guard + gem push)
+# from the gemspec. The `release` task is what `rubygems/release-gem` runs
+# in .github/workflows/release.yml; on a tag-triggered run the tag already
+# exists, so `release:source_control_push` is skipped and only the RubyGems
+# push (via Trusted Publishing OIDC) happens.
+require "bundler/gem_tasks"
+
 require "rspec/core/rake_task"
 require "rubocop/rake_task"
 

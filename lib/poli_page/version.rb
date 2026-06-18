@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
 module PoliPage
-  VERSION = "1.0.0.rc.1"
+  VERSION = "0.9.0"
 end

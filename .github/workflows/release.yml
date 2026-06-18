@@ -1,0 +1,80 @@
+name: release
+
+# Tag-triggered publish. Push a `vX.Y.Z` tag whose version matches
+# lib/poli_page/version.rb and this workflow publishes that version to
+# RubyGems via Trusted Publishing (OIDC) — no API key stored in CI.
+#
+#   git tag v0.9.0 && git push origin v0.9.0
+#
+# The RubyGems Trusted Publisher record (rubygems.org) must name this file
+# (`release.yml`) and the repo `poli-page/sdk-ruby`, with the Environment
+# field left blank to match the job below.
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # create the GitHub Release (the git tag already exists)
+      id-token: write   # RubyGems Trusted Publishing (OIDC)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.4"
+          bundler-cache: true
+
+      - name: Verify tag matches lib/poli_page/version.rb
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          GEM_VERSION="$(ruby -Ilib -rpoli_page/version -e 'print PoliPage::VERSION')"
+          if [[ "$TAG_VERSION" != "$GEM_VERSION" ]]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} (${TAG_VERSION}) does not match PoliPage::VERSION (${GEM_VERSION}). Refusing to publish." >&2
+            exit 1
+          fi
+          echo "Releasing poli-page ${GEM_VERSION}"
+
+      - name: Gates (lint + types + tests + audit)
+        run: |
+          set -euo pipefail
+          bundle exec rubocop
+          bundle exec rbs validate
+          bundle exec rspec spec
+          bundle exec bundle-audit check --update
+
+      - name: Publish to RubyGems (Trusted Publishing)
+        # Runs `bundle exec rake release`: builds the gem, skips re-tagging
+        # (the tag already exists), pushes via OIDC, and uploads sigstore
+        # attestations. No GEM_HOST_API_KEY needed.
+        uses: rubygems/release-gem@v1
+
+      - name: Extract CHANGELOG section
+        id: changelog
+        run: |
+          set -euo pipefail
+          NOTES_FILE="$RUNNER_TEMP/release-notes.md"
+          awk -v ver="${GITHUB_REF_NAME#v}" '
+            $0 ~ "^## \\[" ver "\\]" { capture = 1; next }
+            capture && /^## \[/        { exit }
+            capture                    { print }
+          ' CHANGELOG.md > "$NOTES_FILE"
+          if [ ! -s "$NOTES_FILE" ]; then
+            echo "_See [CHANGELOG.md](CHANGELOG.md) for details._" > "$NOTES_FILE"
+          fi
+          echo "notes_file=$NOTES_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file "${{ steps.changelog.outputs.notes_file }}" \
+            pkg/*.gem

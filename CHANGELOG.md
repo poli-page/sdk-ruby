@@ -10,7 +10,7 @@ Breaking changes between major versions are summarized in
 
 ## [Unreleased]
 
-## [1.0.0.rc.1] - 2026-05-24
+## [0.9.0] - 2026-06-18
 
 ### Added — first release
 
