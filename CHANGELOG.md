@@ -10,6 +10,15 @@ Breaking changes between major versions are summarized in
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-06-22
+
+### Fixed
+
+- Declare `base64` as a runtime dependency. The SDK hands back base64-encoded
+  thumbnail data (decoded by consumers with `Base64.decode64`) and ships an
+  example that requires `base64`; on Ruby 3.4+, where `base64` is no longer a
+  default gem, this surfaced as `LoadError -- base64` without the dependency.
+
 ## [0.9.0] - 2026-06-18
 
 ### Added — first release
