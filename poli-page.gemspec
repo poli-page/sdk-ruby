@@ -26,4 +26,11 @@ Gem::Specification.new do |s|
             %w[LICENSE README.md CHANGELOG.md MIGRATION.md SECURITY.md CODE_OF_CONDUCT.md]
             .select { |f| File.exist?(f) }
   s.require_paths = ["lib"]
+
+  # `base64` moved from a default gem to a bundled gem in Ruby 3.4. The SDK
+  # surfaces base64-encoded thumbnail bytes (PoliPage::Thumbnail#data) and the
+  # documented decode path (`Base64.decode64`) needs the `base64` library,
+  # which is no longer auto-available on Ruby 3.4+. Declare it explicitly so
+  # consumers don't hit `LoadError -- base64`.
+  s.add_dependency "base64", ">= 0.1"
 end
