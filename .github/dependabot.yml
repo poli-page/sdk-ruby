@@ -10,6 +10,13 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # parallel 2.0.0+ requires Ruby >= 3.3, but the gemspec supports
+      # Ruby >= 3.2 (hence the "< 2.0" cap in Gemfile). Without this,
+      # Dependabot repeatedly fails its update job trying to bump past
+      # the cap. See the comment on the parallel pin in Gemfile.
+      - dependency-name: parallel
+        versions: [">= 2.0"]
     groups:
       dev-dependencies:
         applies-to: version-updates
