@@ -10,10 +10,14 @@ SimpleCov::Formatter::LcovFormatter.config do |c|
   c.single_report_path = "coverage/lcov.info"
 end
 
-SimpleCov.formatters = SimpleCov::Formatter::MultiFormatter.new([
-                                                                  SimpleCov::Formatter::HTMLFormatter,
-                                                                  SimpleCov::Formatter::LcovFormatter
-                                                                ])
+# Assign the array of formatter classes directly; SimpleCov wraps them in a
+# MultiFormatter internally. (Passing MultiFormatter.new([...]) yourself breaks
+# on simplecov >= 1.0, where .new returns a Class the formatters= setter then
+# calls .empty? on. The array form works on both 0.x and 1.x.)
+SimpleCov.formatters = [
+  SimpleCov::Formatter::HTMLFormatter,
+  SimpleCov::Formatter::LcovFormatter
+]
 
 SimpleCov.start do
   add_filter "/spec/"
