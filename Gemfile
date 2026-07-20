@@ -15,7 +15,7 @@ group :development, :test do
   gem "rspec", "~> 3.13"
   gem "rubocop", "~> 1.88", require: false
   gem "rubocop-rspec", "~> 3.10", require: false
-  gem "simplecov", "~> 0.22", require: false
+  gem "simplecov", "~> 1.0", require: false
   # Emits coverage/coverage.lcov for the Codecov uploader (CI step in
   # `.github/workflows/ci.yml`). The HTML report under coverage/ is still
   # produced for local inspection.
@@ -23,5 +23,5 @@ group :development, :test do
   gem "steep", "~> 2.0", require: false
   gem "vcr", "~> 6.3"
   gem "webmock", "~> 3.24"
-  gem "yard", "~> 0.9.44", require: false
+  gem "yard", "~> 0.9.45", require: false
 end
