@@ -13,7 +13,7 @@ group :development, :test do
   gem "rake", "~> 13.2", require: false
   gem "rbs", "~> 4.1", require: false
   gem "rspec", "~> 3.13"
-  gem "rubocop", "~> 1.88", require: false
+  gem "rubocop", "~> 1.89", require: false
   gem "rubocop-rspec", "~> 3.10", require: false
   gem "simplecov", "~> 1.0", require: false
   # Emits coverage/coverage.lcov for the Codecov uploader (CI step in
