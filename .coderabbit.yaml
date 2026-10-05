@@ -62,7 +62,7 @@ reviews:
         and Ruby >= 3.2 compatibility. Follow .rubocop.yml.
     - path: "lib/poli_page/errors.rb"
       instructions: >-
-        API errors are parsed from the `{ error: { code, message } }` response shape and mapped to typed
+        API errors are parsed from the `{ error: CODE_STRING, detail?, issues? } (flat, API spec §4.1)` response shape and mapped to typed
         PoliPage error classes. Error codes and class names must match the canonical errors in
         docs/src/preset/canonical-errors.json.
     - path: "lib/poli_page/internal/**/*.rb"
