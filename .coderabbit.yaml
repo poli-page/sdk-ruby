@@ -1,0 +1,89 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit config for poli-page repos. PRs here are mostly opened and fixed by automated agents
+# (the poli-page auto loop and issue pipeline), which read CodeRabbit's findings and its commit status.
+language: en-US
+early_access: false
+reviews:
+  profile: chill
+  request_changes_workflow: false
+  allow_author_approval: true
+  # The summary goes in the walkthrough, never in the PR description: the merge gate reads the description.
+  high_level_summary: false
+  high_level_summary_in_walkthrough: true
+  review_status: true
+  review_details: false
+  # The loop decides "reviewed this head" from the CodeRabbit commit status ("Review completed").
+  review_progress: true
+  commit_status: true
+  fail_commit_status: false
+  collapse_walkthrough: true
+  changed_files_summary: true
+  sequence_diagrams: true
+  estimate_code_review_effort: true
+  assess_linked_issues: true
+  related_issues: true
+  related_prs: true
+  suggested_labels: true
+  # PR labels are the closed issues' labels; CodeRabbit only suggests.
+  auto_apply_labels: false
+  suggested_reviewers: true
+  auto_assign_reviewers: false
+  in_progress_fortune: false
+  poem: false
+  enable_prompt_for_ai_agents: true
+  abort_on_close: true
+  disable_cache: false
+  slop_detection:
+    enabled: true
+    include_all_authors: false
+  auto_review:
+    enabled: true
+    drafts: false
+    # Every push of a fix round must be reviewed, and never auto-paused (the loop allows up to 5 rounds).
+    auto_incremental_review: true
+    auto_pause_after_reviewed_commits: 0
+  pre_merge_checks:
+    docstrings:
+      mode: "off"
+  path_filters:
+    - "!Gemfile.lock"
+    - "!docs/package-lock.json"
+    - "!coverage/**"
+    - "!docs/dist/**"
+    - "!docs/.astro/**"
+    - "!docs/src/content/docs/reference/**"
+    - "!scripts/extract-api/.cache/**"
+  path_instructions:
+    - path: "lib/**/*.rb"
+      instructions: >-
+        Public API (PoliPage::Client, render, documents, models, errors) must stay consistent with the other
+        poli-page SDKs and the API spec. No breaking changes without a major version bump. Zero runtime
+        dependencies beyond the stdlib (plus base64): flag any new gem dependency. Keep `# frozen_string_literal: true`
+        and Ruby >= 3.2 compatibility. Follow .rubocop.yml.
+    - path: "lib/poli_page/errors.rb"
+      instructions: >-
+        API errors are parsed from the `{ error: { code, message } }` response shape and mapped to typed
+        PoliPage error classes. Error codes and class names must match the canonical errors in
+        docs/src/preset/canonical-errors.json.
+    - path: "lib/poli_page/internal/**/*.rb"
+      instructions: >-
+        Transport, retry and wire code. Check retry and idempotency behavior, timeouts, cancellation, that the
+        API key is never logged or leaked in events/hooks, and that binary responses stay binary-encoded.
+    - path: "sig/**/*.rbs"
+      instructions: >-
+        RBS signatures must stay in sync with lib/ (Steep runs in CI). Any public method or type change in lib/
+        needs the matching signature update.
+    - path: "spec/**/*.rb"
+      instructions: >-
+        Every public method needs RSpec coverage including error paths. Unit specs use WebMock; integration
+        specs use VCR cassettes. Never record real API keys in fixtures or cassettes.
+    - path: "examples/**/*.rb"
+      instructions: >-
+        Sample code customers copy: API key from ENV (POLI_PAGE_API_KEY), never hard-coded, and in line with
+        the README and docs.
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CONTRIBUTING.md"
+      - "sdk-engineering-guide.md"
