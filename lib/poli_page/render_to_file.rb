@@ -22,7 +22,6 @@ module PoliPage
     #     "out/welcome.pdf",
     #     project:  "getting-started",
     #     template: "welcome",
-    #     version:  "1.0.0",
     #     data:     { name: "World" }
     #   )
     def render_to_file(path, **kwargs)

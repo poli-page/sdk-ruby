@@ -11,14 +11,6 @@ module PoliPage
     def self?.valid?: (untyped value) -> bool
   end
 
-  class PreviewResult < Data
-    attr_reader html: String
-    attr_reader total_pages: Integer
-    attr_reader environment: String
-
-    def self.new: (html: String, total_pages: Integer, environment: String) -> PreviewResult
-  end
-
   class DocumentPreviewResult < Data
     attr_reader html: String
     attr_reader page_count: Integer
@@ -43,7 +35,6 @@ module PoliPage
     attr_reader project_slug: String
     attr_reader template_id: String
     attr_reader template_slug: String?
-    attr_reader version: String
     attr_reader environment: String
     attr_reader api_key_id: String?
     attr_reader format: String
@@ -58,49 +49,37 @@ module PoliPage
     attr_reader _client: PoliPage::Client?
 
     def self.new: (**untyped) -> DocumentDescriptor
+    def self.from_wire: (Hash[Symbol, untyped] parsed, client: PoliPage::Client) -> DocumentDescriptor
 
     def download_pdf: () -> String
     def to_h: () -> Hash[Symbol, untyped]
     def inspect: () -> String
   end
 
-  class ProjectModeInput < Data
+  class RenderInput < Data
     attr_reader project: String
     attr_reader template: String
     attr_reader data: Hash[untyped, untyped]
-    attr_reader version: String?
     attr_reader format: String?
     attr_reader orientation: String?
     attr_reader locale: String?
     attr_reader metadata: Hash[untyped, untyped]?
+    attr_reader idempotency_key: String?
 
     def self.new: (project: String, template: String, data: Hash[untyped, untyped],
-                   ?version: String?, ?format: String?, ?orientation: String?,
-                   ?locale: String?, ?metadata: Hash[untyped, untyped]?) -> ProjectModeInput
-    def to_h: () -> Hash[Symbol, untyped]
-  end
-
-  class InlineModeInput < Data
-    attr_reader template: String
-    attr_reader data: Hash[untyped, untyped]
-    attr_reader format: String?
-    attr_reader orientation: String?
-    attr_reader locale: String?
-    attr_reader metadata: Hash[untyped, untyped]?
-
-    def self.new: (template: String, data: Hash[untyped, untyped],
                    ?format: String?, ?orientation: String?,
-                   ?locale: String?, ?metadata: Hash[untyped, untyped]?) -> InlineModeInput
+                   ?locale: String?, ?metadata: Hash[untyped, untyped]?,
+                   ?idempotency_key: String?) -> RenderInput
     def to_h: () -> Hash[Symbol, untyped]
   end
 
   class ThumbnailOptions < Data
-    attr_reader width: Integer
+    attr_reader width: Integer?
     attr_reader format: String?
     attr_reader quality: Integer?
     attr_reader pages: Array[Integer]?
 
-    def self.new: (width: Integer, ?format: String?, ?quality: Integer?, ?pages: Array[Integer]?) -> ThumbnailOptions
+    def self.new: (?width: Integer?, ?format: String?, ?quality: Integer?, ?pages: Array[Integer]?) -> ThumbnailOptions
     def to_h: () -> Hash[Symbol, untyped]
   end
 end

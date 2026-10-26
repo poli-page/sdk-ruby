@@ -6,7 +6,7 @@ RSpec.describe PoliPage::DocumentDescriptor do
       document_id: "doc_abc123", organization_id: "org_xyz",
       project_id: "proj_42", project_slug: "billing",
       template_id: "tpl_invoice_v1", template_slug: "invoice",
-      version: "1.0.0", environment: "live", api_key_id: "key_live_abc",
+      environment: "live", api_key_id: "key_live_abc",
       format: "A4", orientation: "portrait", locale: "en-US",
       page_count: 2, size_bytes: 38_421,
       created_at: "2026-04-30T19:45:22Z",
@@ -25,6 +25,14 @@ RSpec.describe PoliPage::DocumentDescriptor do
 
   it "is frozen" do
     expect(described_class.new(**fields)).to be_frozen
+  end
+
+  it "has no version field" do
+    expect(described_class.members).not_to include(:version)
+  end
+
+  it "keeps any environment name as a plain String" do
+    expect(described_class.new(**fields, environment: "eu-prod").environment).to eq("eu-prod")
   end
 
   it "accepts nil for nullable wire fields (project_id, orientation, locale, ...)" do

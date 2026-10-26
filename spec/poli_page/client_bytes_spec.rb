@@ -6,7 +6,7 @@
 # unauthenticated, with NO SDK retry policy (sdk-ruby-plan.md §5.5).
 
 RSpec.describe PoliPage::Client do
-  let(:client) { described_class.new(api_key: "pp_test_abc", max_retries: 0) }
+  let(:client) { described_class.new(api_key: "pp_sandbox_abc", max_retries: 0) }
   let(:url)    { "https://s3.example/presigned/x.pdf" }
 
   describe "#fetch_bytes" do

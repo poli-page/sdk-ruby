@@ -10,6 +10,61 @@ Breaking changes between major versions are summarized in
 
 ## [Unreleased]
 
+Environments contract: an API key carries its environment (`pp_{env}_…`,
+e.g. `pp_sandbox_…`, `pp_live_…`, `pp_staging_…`) and a render uses the
+project's copy published in that environment. Breaking, with no deprecation
+window.
+
+### Removed
+
+- **`render.preview`** and its **`PreviewResult`** type. The API removed
+  `POST /v1/render/preview` (a call now gets `404`). `documents.preview(id)`
+  stays.
+- **Inline mode**: the `InlineModeInput` type and raw HTML in `template:`.
+  `template:` is always a slug.
+- The **`version:`** keyword of `render.document`, `render.pdf`,
+  `render.pdf_stream` and `render_to_file`, and with it draft rendering by an
+  API key. Passing `version:` now raises `ArgumentError`.
+- The **`version`** field of `DocumentDescriptor`.
+- From `PoliPage::ErrorCodes`: `VERSION_NOT_FOUND`, `INVALID_VERSION_FORMAT`,
+  `VERSION_REQUIRED`, `INVALID_VERSION_FOR_KEY_ENV`,
+  `MISSING_PROJECT_OR_TEMPLATE`, `GONE` (the API answers `410 DOCUMENT_GONE`)
+  and `PAYMENT_REQUIRED` (payment grace is `403 ORGANIZATION_PAYMENT_GRACE`).
+
+### Changed
+
+- `ProjectModeInput` is renamed **`RenderInput`** and is the only input type.
+- The render body is built from the seven documented fields only
+  (`project`, `template`, `data`, `metadata`, `format`, `orientation`,
+  `locale`); unset optional fields are omitted. The SDK never sends an
+  environment: the API resolves it from the key.
+- `DocumentDescriptor#environment` is any environment name (`sandbox`,
+  `live`, `staging`, …), returned unchanged. Response fields the SDK does not
+  know are ignored instead of failing the `Data.define` constructor.
+- `documents.thumbnails(id)` takes optional options: `width:` is no longer
+  required (API default 400), `format:` accepts `"webp"` (API default
+  `"jpeg"`), and the SDK no longer pre-checks `width`, `format`, `quality` or
+  `pages` (the API answers `400 VALIDATION_ERROR`). With no option set the
+  body is `{}`. `ThumbnailOptions.new` takes every field as optional.
+- `documents.delete` is documented as idempotent: the API answers `204` again
+  for an already-deleted document, so a re-delete returns `nil`.
+
+### Added
+
+- `PoliPage::ErrorCodes`: `PUBLISH_IN_PROGRESS` (503, retried),
+  `ENVIRONMENT_MISMATCH` (400), `PROJECT_NOT_IN_ENVIRONMENT` (404),
+  `TEMPLATE_NOT_FOUND` (404), `DOCUMENT_GONE` (410), `ENVIRONMENT_PROTECTED`
+  (403), `ORGANIZATION_PAYMENT_GRACE` (403), `EMPTY_DOCUMENT` (400),
+  `STORAGE_ACCESS_DENIED` (502), `ORGANIZATION_MIGRATING` (503),
+  `PROJECT_NOT_FOUND` (404), `TEMPLATE_ERROR` (400),
+  `THUMBNAILS_NOT_AVAILABLE` (403), `RATE_LIMIT_EXCEEDED` (429),
+  `RENDER_BODY_TOO_LARGE` (413), `DOCUMENT_TOO_LARGE` (413) and
+  `RENDER_TIMEOUT` (504): 31 known API codes in all. The list stays open:
+  `Error#code` is whatever string the API returns.
+- A render held by a publish of the same project and environment gets
+  `503 PUBLISH_IN_PROGRESS` with `Retry-After`; the existing retry policy
+  retries it after that delay.
+
 ## [0.9.1] - 2026-06-22
 
 ### Fixed

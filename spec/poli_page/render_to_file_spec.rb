@@ -8,21 +8,9 @@ require "pathname"
 require "tmpdir"
 
 RSpec.describe PoliPage::Client, "#render_to_file" do
-  let(:client) { described_class.new(api_key: "pp_test_abc", max_retries: 0) }
+  let(:client) { described_class.new(api_key: "pp_sandbox_abc", max_retries: 0) }
 
-  let(:descriptor_json) do
-    JSON.generate(
-      documentId: "doc_abc123", organizationId: "org_xyz",
-      projectId: "proj_42", projectSlug: "billing",
-      templateId: "tpl_invoice_v1", templateSlug: "invoice",
-      version: "1.0.0", environment: "live", apiKeyId: "key_live_abc",
-      format: "A4", orientation: "portrait", locale: "en-US",
-      pageCount: 2, sizeBytes: 38_421,
-      createdAt: "2026-04-30T19:45:22Z", metadata: {},
-      expiresAt: "2026-04-30T20:00:22Z",
-      presignedPdfUrl: "https://s3.example/presigned/x.pdf"
-    )
-  end
+  let(:descriptor_json) { DocumentDescriptorJSON.build }
 
   before do
     stub_request(:post, "https://api.poli.page/v1/render").to_return(status: 200, body: descriptor_json)
@@ -32,7 +20,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
   it "writes the streamed PDF bytes to the given path (String)" do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "out.pdf")
-      client.render_to_file(path, project: "billing", template: "invoice", version: "1.0.0", data: {})
+      client.render_to_file(path, project: "billing", template: "invoice", data: {})
       expect(File.binread(path)).to eq("%PDF-1.4 stub data")
     end
   end
@@ -40,7 +28,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
   it "accepts a Pathname argument" do
     Dir.mktmpdir do |dir|
       path = Pathname(dir).join("out.pdf")
-      client.render_to_file(path, project: "billing", template: "invoice", version: "1.0.0", data: {})
+      client.render_to_file(path, project: "billing", template: "invoice", data: {})
       expect(path.binread).to eq("%PDF-1.4 stub data")
     end
   end
@@ -48,7 +36,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
   it "creates parent directories that don't exist" do
     Dir.mktmpdir do |dir|
       nested = File.join(dir, "deeply", "nested", "out.pdf")
-      client.render_to_file(nested, project: "billing", template: "invoice", version: "1.0.0", data: {})
+      client.render_to_file(nested, project: "billing", template: "invoice", data: {})
       expect(File.exist?(nested)).to be true
     end
   end
@@ -57,7 +45,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
     Dir.mktmpdir do |dir|
       path = File.join(dir, "out.pdf")
       File.write(path, "previous contents — should be replaced")
-      client.render_to_file(path, project: "billing", template: "invoice", version: "1.0.0", data: {})
+      client.render_to_file(path, project: "billing", template: "invoice", data: {})
       expect(File.binread(path)).to eq("%PDF-1.4 stub data")
     end
   end
@@ -65,7 +53,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
   it "returns nil on success" do
     Dir.mktmpdir do |dir|
       result = client.render_to_file(File.join(dir, "out.pdf"),
-                                     project: "billing", template: "invoice", version: "1.0.0", data: {})
+                                     project: "billing", template: "invoice", data: {})
       expect(result).to be_nil
     end
   end
@@ -76,7 +64,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
   it "raises InvalidOptionsError when the path is unwritable", skip: Gem.win_platform? do
     expect do
       client.render_to_file("/no-such-root-i-promise/x.pdf",
-                            project: "billing", template: "invoice", version: "1.0.0", data: {})
+                            project: "billing", template: "invoice", data: {})
     end.to raise_error(PoliPage::InvalidOptionsError)
   end
 
@@ -86,7 +74,7 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
       .to_return(status: 400, body: '{"code":"VALIDATION_ERROR","message":"bad"}')
     Dir.mktmpdir do |dir|
       path = File.join(dir, "out.pdf")
-      expect { client.render_to_file(path, project: "billing", template: "invoice", version: "1.0.0", data: {}) }
+      expect { client.render_to_file(path, project: "billing", template: "invoice", data: {}) }
         .to raise_error(PoliPage::ValidationError)
       expect(File.exist?(path)).to be false
     end

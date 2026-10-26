@@ -15,7 +15,6 @@ module MetaSidecar
       methods: [
         { slug: "render-pdf",           name: "client.render.pdf" },
         { slug: "render-pdf-stream",    name: "client.render.pdf_stream" },
-        { slug: "render-preview",       name: "client.render.preview" },
         { slug: "render-document",      name: "client.render.document" },
         { slug: "documents-get",        name: "client.documents.get" },
         { slug: "documents-preview",    name: "client.documents.preview" },

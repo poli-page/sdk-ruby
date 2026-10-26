@@ -34,6 +34,7 @@ require "webmock/rspec"
 WebMock.disable_net_connect!(allow_localhost: true)
 
 require "poli_page"
+require_relative "support/document_descriptor_json"
 
 RSpec.configure do |config|
   config.expect_with :rspec do |expectations|

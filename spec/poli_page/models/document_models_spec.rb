@@ -7,7 +7,7 @@ RSpec.describe PoliPage::DocumentPreviewResult do
     expect(result.page_count).to eq(3)
   end
 
-  it "does not expose :total_pages — distinct from PreviewResult by spec" do
+  it "does not expose :total_pages (the page count is page_count)" do
     result = described_class.new(html: "x", page_count: 1)
     expect(result.respond_to?(:total_pages)).to be false
     expect(result.to_h.keys).to contain_exactly(:html, :page_count)
@@ -38,16 +38,17 @@ RSpec.describe PoliPage::Thumbnail do
 end
 
 RSpec.describe PoliPage::ThumbnailOptions do
-  it "requires :width and defaults others to nil" do
-    opts = described_class.new(width: 320)
-    expect(opts.width).to eq(320)
+  it "makes every option optional, defaulting to nil" do
+    opts = described_class.new
+    expect(opts.width).to be_nil
     expect(opts.format).to be_nil
     expect(opts.quality).to be_nil
     expect(opts.pages).to be_nil
   end
 
-  it "carries format, quality, pages" do
+  it "carries width, format, quality, pages" do
     opts = described_class.new(width: 320, format: "jpeg", quality: 80, pages: [1, 2])
+    expect(opts.width).to eq(320)
     expect(opts.format).to eq("jpeg")
     expect(opts.quality).to eq(80)
     expect(opts.pages).to eq([1, 2])
@@ -56,6 +57,7 @@ RSpec.describe PoliPage::ThumbnailOptions do
   it "#to_h drops nil-valued knobs" do
     opts = described_class.new(width: 320, format: "png")
     expect(opts.to_h).to eq(width: 320, format: "png")
+    expect(described_class.new.to_h).to eq({})
   end
 
   it "is frozen" do

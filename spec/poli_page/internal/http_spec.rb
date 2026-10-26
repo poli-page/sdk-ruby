@@ -161,7 +161,7 @@ RSpec.describe PoliPage::Internal::HTTP do
   describe ".build_headers" do
     let(:ua) { "poli-page-sdk-ruby/1.0.0" }
 
-    def post_headers(api_key: "pp_test_x", idempotency_key: "idem-1", user_agent: ua)
+    def post_headers(api_key: "pp_sandbox_x", idempotency_key: "idem-1", user_agent: ua)
       described_class.build_headers(method: :post, api_key: api_key,
                                     idempotency_key: idempotency_key, user_agent: user_agent)
     end
@@ -175,7 +175,7 @@ RSpec.describe PoliPage::Internal::HTTP do
     end
 
     it "sets Authorization with Bearer prefix" do
-      expect(post_headers(api_key: "pp_test_xyz")["Authorization"]).to eq("Bearer pp_test_xyz")
+      expect(post_headers(api_key: "pp_sandbox_xyz")["Authorization"]).to eq("Bearer pp_sandbox_xyz")
     end
 
     it "sets the supplied User-Agent verbatim" do
@@ -187,19 +187,19 @@ RSpec.describe PoliPage::Internal::HTTP do
     end
 
     it "GET requests omit Content-Type and Idempotency-Key but keep auth/UA/Accept" do
-      h = described_class.build_headers(method: :get, api_key: "pp_test_x", idempotency_key: nil, user_agent: ua)
+      h = described_class.build_headers(method: :get, api_key: "pp_sandbox_x", idempotency_key: nil, user_agent: ua)
       expect(h["Content-Type"]).to be_nil
       expect(h["Idempotency-Key"]).to be_nil
-      expect(h["Authorization"]).to eq("Bearer pp_test_x")
+      expect(h["Authorization"]).to eq("Bearer pp_sandbox_x")
       expect(h["User-Agent"]).to eq(ua)
       expect(h["Accept"]).to eq("application/json")
     end
 
     it "DELETE requests omit Content-Type and Idempotency-Key but keep auth/UA/Accept" do
-      h = described_class.build_headers(method: :delete, api_key: "pp_test_x", idempotency_key: nil, user_agent: ua)
+      h = described_class.build_headers(method: :delete, api_key: "pp_sandbox_x", idempotency_key: nil, user_agent: ua)
       expect(h["Content-Type"]).to be_nil
       expect(h["Idempotency-Key"]).to be_nil
-      expect(h["Authorization"]).to eq("Bearer pp_test_x")
+      expect(h["Authorization"]).to eq("Bearer pp_sandbox_x")
     end
   end
 
@@ -243,7 +243,7 @@ RSpec.describe PoliPage::Internal::HTTP do
     end
 
     it "returns GoneError for 410" do
-      expect(described_class.classify(status: 410, code: "GONE", message: "x", request_id: nil))
+      expect(described_class.classify(status: 410, code: "DOCUMENT_GONE", message: "x", request_id: nil))
         .to be_a(PoliPage::GoneError)
     end
 
@@ -263,8 +263,8 @@ RSpec.describe PoliPage::Internal::HTTP do
       expect(err.status).to eq(500)
     end
 
-    it "returns APIError for 402 PAYMENT_REQUIRED" do
-      expect(described_class.classify(status: 402, code: "PAYMENT_REQUIRED", message: "x", request_id: nil))
+    it "returns APIError for 413 RENDER_BODY_TOO_LARGE" do
+      expect(described_class.classify(status: 413, code: "RENDER_BODY_TOO_LARGE", message: "x", request_id: nil))
         .to be_a(PoliPage::APIError)
     end
   end
