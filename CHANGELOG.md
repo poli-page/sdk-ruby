@@ -5,10 +5,12 @@ here.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-Breaking changes between major versions are summarized in
+Breaking releases (minor bumps while on 0.x) are summarized in
 [MIGRATION.md](MIGRATION.md).
 
 ## [Unreleased]
+
+## [0.10.0] - 2026-10-26
 
 Environments contract: an API key carries its environment (`pp_{env}_…`,
 e.g. `pp_sandbox_…`, `pp_live_…`, `pp_staging_…`) and a render uses the
@@ -52,6 +54,16 @@ window.
   `PoliPage::InvalidOptionsError` before the request.
 - `documents.delete` is documented as idempotent: the API answers `204` again
   for an already-deleted document, so a re-delete returns `nil`.
+- README, docs site and `examples/demo.rb` follow the environments contract:
+  the quick start and the demo render `getting-started`/`welcome` with a
+  `sandbox` key and no version, "Authentication & environments" carries the
+  key table and the key regex, and previews point to the playground
+  (<https://play.poli.page>). The demo checks a pasted key against the key
+  regex only and its last step is `not-found` (`404 TEMPLATE_NOT_FOUND`).
+- The nightly integration workflow no longer passes a template version; it
+  renders `getting-started`/`welcome` with the `POLI_PAGE_API_KEY` secret (a
+  `pp_sandbox_` key).
+- `MIGRATION.md` has a "From 0.9.x to 0.10.0" entry.
 
 ### Added
 

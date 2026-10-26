@@ -1,16 +1,25 @@
 ---
 title: Migration
-description: Upgrade guides for moving between major versions of the Ruby SDK.
+description: Upgrade guides for moving between breaking releases of the Ruby SDK.
 ---
 
-This page tracks breaking changes between major versions of the `poli-page` gem. For the full per-release diff, see the [changelog](../changelog/).
+This page tracks breaking changes between releases of the `poli-page` gem. While the gem is on 0.x, a breaking change bumps the minor version. For the full per-release diff, see the [changelog](../changelog/).
 
-## v1.0
+## From 0.9.x to 0.10.0
 
-The first stable release. The full v1.0 surface and any renames from earlier prereleases are documented in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md).
+0.10.0 follows the environments contract: an API key belongs to one environment (`pp_sandbox_…`, `pp_live_…`, `pp_staging_…`) and a render uses the project's copy published in that environment. Every removal ships at once, with no deprecation window. The full guide, with before/after code, is in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md#from-09x-to-0100).
 
-Short version: every render call goes through a resource namespace (`client.render.pdf`, `client.render.preview`, `client.render.document`), all PDF-producing methods require project mode, and inline HTML is only accepted by `client.render.preview`.
+- Keys: the `pp_test_` and `pp_sa_` prefixes are gone. Create a key in the environment you render in; a `sandbox` key replaces a test key.
+- `version:` is removed from `render.pdf`, `render.pdf_stream`, `render.document` and `render_to_file`, and `DocumentDescriptor#version` is gone. Publish the project to the key's environment instead of pinning a version.
+- `render.preview` and inline HTML are removed. Preview templates and inline HTML in the playground at [play.poli.page](https://play.poli.page). `documents.preview(id)` stays.
+- `ProjectModeInput` is renamed `RenderInput`; `InlineModeInput` is removed.
+- Error codes: `GONE` becomes `DOCUMENT_GONE`, `PAYMENT_REQUIRED` becomes `ORGANIZATION_PAYMENT_GRACE`, and the version codes are gone. See [Errors](../../production/errors/).
+- `documents.thumbnails` no longer checks its options on the client: an out-of-bounds option raises `PoliPage::ValidationError` from the API instead of `PoliPage::InvalidOptionsError`.
+
+## 0.9.0
+
+The first release. Its surface is documented in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md#090).
 
 ## See also
 - [Changelog](../changelog/)
-- [Render modes](../../concepts/render-modes/)
+- [Render input](../../concepts/render-modes/)

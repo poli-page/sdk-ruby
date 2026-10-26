@@ -19,6 +19,10 @@ module Demo
 
   USE_COLOR = $stdout.tty? && ENV["NO_COLOR"] != "1"
 
+  # The SDK contract's full-key regex, verbatim. It checks the shape only:
+  # any environment name is accepted.
+  API_KEY_PATTERN = /^pp_(?=[a-z][a-z0-9-]{0,19}_)[a-z][a-z0-9]*(?:-[a-z0-9]+)*_[0-9a-f]{32}$/
+
   module_function
 
   # ─ Tiny ANSI helpers ──────────────────────────────────────────────────────
@@ -107,8 +111,9 @@ module Demo
     puts bold(yellow("   No POLI_PAGE_API_KEY found."))
     puts rule
     puts
-    puts "   This demo needs a test key (#{cyan("pp_test_*")}) to talk to the"
-    puts "   Poli Page API. Test keys never bill or send real documents."
+    puts "   This demo needs a #{bold("sandbox")} key (#{cyan("pp_sandbox_…")}) of a fresh"
+    puts "   organization. Sandbox renders are watermarked and do not count"
+    puts "   toward your monthly PDF quota."
     puts
     puts bold("   How to get one:")
     puts "     1. Sign in at #{cyan("https://app.poli.page")}"
@@ -116,7 +121,8 @@ module Demo
     puts "          #{cyan("https://app.poli.page/orgs/{YOUR_ORG}/keys")}"
     puts dim("        (replace {YOUR_ORG} with your org slug — visible in the")
     puts dim("         dashboard URL when you're inside your organization)")
-    puts "     3. Click \"Create key\" and copy the value (starts with #{cyan("pp_test_")})."
+    puts "     3. Create a key in the #{bold("sandbox")} environment and copy the value"
+    puts "        (it starts with #{cyan("pp_sandbox_")})."
     puts
     puts "   Paste it below — we'll save it to #{cyan(".env")} so future"
     puts "   runs pick it up automatically. (You can also set"
@@ -125,12 +131,12 @@ module Demo
   end
 
   def prompt_for_api_key
-    print bold("   Paste your pp_test_* key") + " (or Ctrl-C to cancel): "
+    print bold("   Paste your sandbox key") + " (or Ctrl-C to cancel): "
     key = $stdin.gets&.strip.to_s
 
-    unless key.start_with?("pp_test_")
+    unless API_KEY_PATTERN.match?(key)
       warn
-      warn "  #{red("✗")} Expected a key starting with `pp_test_`. Aborting."
+      warn "  #{red("✗")} Expected a key shaped pp_{env}_{32 lowercase hex}. Aborting."
       warn
       exit 1
     end

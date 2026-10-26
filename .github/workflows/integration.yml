@@ -1,10 +1,13 @@
 name: Integration
 
-# Hits the live API. Gated by `secrets.POLI_PAGE_API_KEY` — the job becomes
-# a no-op skip on forks/PRs without secret access.
+# Hits the live API. Gated by `secrets.POLI_PAGE_API_KEY`: a `pp_sandbox_`
+# key of an organization whose `getting-started` project is untouched (the
+# specs render `getting-started`/`welcome` by default). Without the secret
+# the job logs a skip and succeeds.
 #
-# Override the SDK's default API host via `secrets.POLI_PAGE_TEST_BASE_URL`.
-# Test fixture project/template/version come from repo variables.
+# Override the SDK's default API host via `secrets.POLI_PAGE_TEST_BASE_URL`;
+# unset, the SDK default applies. The optional repo variables
+# POLI_PAGE_TEST_PROJECT / POLI_PAGE_TEST_TEMPLATE override the fixture.
 
 on:
   schedule:
@@ -32,7 +35,6 @@ jobs:
       POLI_PAGE_TEST_BASE_URL: ${{ secrets.POLI_PAGE_TEST_BASE_URL }}
       POLI_PAGE_TEST_PROJECT: ${{ vars.POLI_PAGE_TEST_PROJECT }}
       POLI_PAGE_TEST_TEMPLATE: ${{ vars.POLI_PAGE_TEST_TEMPLATE }}
-      POLI_PAGE_TEST_VERSION: ${{ vars.POLI_PAGE_TEST_VERSION }}
     steps:
       - name: Check secret presence
         id: secret
@@ -65,4 +67,12 @@ jobs:
 
       - name: RSpec (integration)
         if: steps.secret.outputs.present == 'true'
-        run: bundle exec rspec spec/integration
+        # An unset secret or variable reaches the job as an empty string, which
+        # the specs would take as a value (base URL "", project ""). Unset the
+        # empty ones so the SDK default and the getting-started fixture apply.
+        shell: bash
+        run: |
+          for name in POLI_PAGE_TEST_BASE_URL POLI_PAGE_TEST_PROJECT POLI_PAGE_TEST_TEMPLATE; do
+            if [ -z "${!name}" ]; then unset "$name"; fi
+          done
+          bundle exec rspec spec/integration
