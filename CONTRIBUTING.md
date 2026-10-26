@@ -42,7 +42,7 @@ Integration tests hit the live API. They're skipped by default; opt in
 with `INTEGRATION=1`:
 
 ```bash
-export POLI_PAGE_API_KEY=pp_test_...
+export POLI_PAGE_API_KEY=pp_sandbox_...   # a sandbox key; the specs render getting-started/welcome
 INTEGRATION=1 bundle exec rspec spec/integration
 ```
 

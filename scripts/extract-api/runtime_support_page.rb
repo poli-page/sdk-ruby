@@ -24,7 +24,7 @@ module RuntimeSupportPage
         },
       }} />
 
-      The minimum supported Ruby version is **3.2**. The gem has zero runtime dependencies — only the Ruby stdlib (`net/http`, `json`, `uri`, `securerandom`, `logger`, `openssl`).
+      The minimum supported Ruby version is **3.2**. The gem's one runtime dependency is `base64` (a bundled gem since Ruby 3.4, used to decode thumbnail data); everything else is the Ruby stdlib (`net/http`, `json`, `uri`, `securerandom`, `logger`, `openssl`).
 
       ## Implementations other than CRuby
 

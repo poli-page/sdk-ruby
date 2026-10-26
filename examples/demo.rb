@@ -4,17 +4,21 @@
 # poli-page — Ruby SDK end-to-end demo.
 #
 # Run:  ruby examples/demo.rb
-#       POLI_PAGE_API_KEY=pp_test_... ruby examples/demo.rb
+#       POLI_PAGE_API_KEY=pp_sandbox_... ruby examples/demo.rb
+#       POLI_PAGE_BASE_URL=https://... ruby examples/demo.rb   # optional host override
 #
 # Walks through every public method of the SDK and writes the results to
-# `examples/output/`. Uses the `getting-started/welcome` template that's
-# auto-provisioned in every Poli Page org's sandbox, so this works out of
-# the box with any fresh sandbox key — no project setup needed.
+# `examples/output/`. Renders the `getting-started` project's `welcome`
+# template, published into every organization's `sandbox` environment when
+# the organization is created, so a sandbox key of a fresh organization
+# works out of the box — no project setup needed. An organization that
+# renamed, deleted or unpublished `getting-started` gets `404
+# PROJECT_NOT_FOUND` / `PROJECT_NOT_IN_ENVIRONMENT` instead.
 #
-# Order matches sdk-ruby-plan.md §13 Phase 5: render.pdf → render.pdf_stream
-# → render_to_file → render.document → documents.get →
-# documents.thumbnails → documents.preview → documents.delete → intentional
-# error path.
+# Steps: 1 render.pdf → 2 render.pdf_stream → 3 render_to_file →
+# 4 render.document → 5 documents.get → 6 documents.thumbnails →
+# 7 documents.preview → 8 documents.delete → 9 not-found (a deliberate
+# `404 TEMPLATE_NOT_FOUND`).
 
 require "logger"
 require_relative "../lib/poli_page"
@@ -42,7 +46,7 @@ client = PoliPage::Client.new(
 PROJECT_INPUT = {
   project:  "getting-started",
   template: "welcome",
-  data:     { name: "Ruby SDK Demo" }
+  data:     { name: "SDK Demo" }
 }.freeze
 
 TOTAL_STEPS = 9
@@ -109,8 +113,8 @@ Demo.step(8, TOTAL_STEPS, "documents.delete(id) — soft-delete the document")
 client.documents.delete(doc.document_id)
 puts "  #{Demo.green("✔")} deleted #{Demo.bold(doc.document_id)}"
 
-# 9. Error handling — DELIBERATELY trigger a 404 and inspect the result ────
-Demo.step(9, TOTAL_STEPS, "error handling — DEMO ONLY (we trigger an error on purpose)")
+# 9. not-found — DELIBERATELY render a template that does not exist ─────────
+Demo.step(9, TOTAL_STEPS, "not-found — DEMO ONLY (we trigger an error on purpose)")
 puts Demo.yellow("  ⚠  This step is intentional — the SDK is about to raise, but the")
 puts Demo.yellow("     demo will rescue and inspect it. ") + Demo.bold("The demo is NOT crashing.")
 puts Demo.dim("     (We render a template that does not exist, expecting the API to return 404 TEMPLATE_NOT_FOUND.)")
@@ -118,18 +122,13 @@ puts
 begin
   client.render.pdf(project: "getting-started", template: "does-not-exist", data: {})
   puts "  #{Demo.red("✗ unexpected: the call succeeded but should have failed")}"
-rescue PoliPage::AuthenticationError, PoliPage::PermissionDeniedError => e
-  puts "  #{Demo.green("✔")} Auth/permission error caught: #{e.code} (status #{e.status})"
-  puts "     request_id=#{e.request_id.inspect}  auth_error?=#{e.auth_error?}  retryable?=#{e.retryable?}"
 rescue PoliPage::Error => e
-  puts "  #{Demo.green("✔")} Error caught successfully. PoliPage::Error exposed:"
-  puts "     code:           #{e.code}"
-  puts "     status:         #{e.status}"
-  puts "     request_id:     #{e.request_id.inspect}"
-  puts "     class:          #{e.class}"
-  puts "     auth_error?     #{e.auth_error?}"
-  puts "     validation_error? #{e.validation_error?}"
-  puts "     retryable?      #{e.retryable?}"
+  mark = e.code == PoliPage::ErrorCodes::TEMPLATE_NOT_FOUND ? Demo.green("✔") : Demo.red("✗ unexpected code;")
+  puts "  #{mark} #{e.class} caught:"
+  puts "     code:       #{e.code}"
+  puts "     status:     #{e.status}"
+  puts "     message:    #{e.message}"
+  puts "     request_id: #{e.request_id.inspect}"
 end
 
 puts

@@ -50,3 +50,6 @@ docs/plan/
 docs/spec/
 sdk-*-plan.md
 sdk-*-specifications.md
+
+## Demo output (examples/demo.rb)
+examples/output/
