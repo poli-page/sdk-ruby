@@ -9,12 +9,12 @@ RSpec.describe PoliPage::Internal::Transport do
   describe "#execute" do
     it "returns a Response with status, headers, and body for 2xx" do
       stub_request(:post, "https://api.poli.page/v1/render")
-        .with(headers: { "Authorization" => "Bearer pp_test" })
+        .with(headers: { "Authorization" => "Bearer pp_sandbox" })
         .to_return(status: 200, body: '{"ok":true}',
                    headers: { "Content-Type" => "application/json", "x-request-id" => "req_1" })
 
       response = transport.execute(method: :post, path: "/v1/render",
-                                   headers: { "Authorization" => "Bearer pp_test",
+                                   headers: { "Authorization" => "Bearer pp_sandbox",
                                               "Content-Type" => "application/json" },
                                    body: '{"project":"p"}')
 

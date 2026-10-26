@@ -14,8 +14,7 @@ module PoliPage
     :project_slug,
     :template_id,
     :template_slug,
-    :version,
-    :environment,        # "sandbox" or "live"
+    :environment,        # any environment name ("sandbox", "live", "staging", ...)
     :api_key_id,
     :format,
     :orientation,        # nullable
@@ -47,6 +46,24 @@ module PoliPage
 
     def inspect
       "#<PoliPage::DocumentDescriptor document_id=#{document_id.inspect} ...>"
+    end
+  end
+
+  class << DocumentDescriptor
+    # Build a descriptor from a parsed `POST /v1/render` or
+    # `GET /v1/documents/:id` body. Fields this SDK does not know are
+    # ignored, so the API can add fields without breaking the strict
+    # `Data.define` constructor.
+    #
+    # @api private
+    # @param parsed [Hash{Symbol=>Object}] snake_case-symbol-keyed body
+    # @param client [PoliPage::Client]
+    # @return [PoliPage::DocumentDescriptor]
+    def from_wire(parsed, client:)
+      fields = parsed.slice(*members)
+      fields[:metadata] ||= {}
+      fields[:_client] = client
+      new(**fields)
     end
   end
 end

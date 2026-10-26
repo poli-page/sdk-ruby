@@ -4,12 +4,12 @@
 # the documents.* namespace.
 
 RSpec.describe PoliPage::Client do
-  let(:client) { described_class.new(api_key: "pp_test_abc", max_retries: 0) }
+  let(:client) { described_class.new(api_key: "pp_sandbox_abc", max_retries: 0) }
 
   describe "#execute_get" do
     it "GETs the path with Authorization, returns parsed snake_case Hash" do
       stub = stub_request(:get, "https://api.poli.page/v1/documents/doc_abc")
-             .with(headers: { "Authorization" => "Bearer pp_test_abc", "Accept" => "application/json" })
+             .with(headers: { "Authorization" => "Bearer pp_sandbox_abc", "Accept" => "application/json" })
              .to_return(status: 200, body: '{"documentId":"doc_abc","pageCount":2}')
 
       result = client.execute_get("/v1/documents/doc_abc")
@@ -36,16 +36,16 @@ RSpec.describe PoliPage::Client do
   describe "#execute_delete" do
     it "DELETEs the path with Authorization and returns nil on 2xx" do
       stub_request(:delete, "https://api.poli.page/v1/documents/doc_abc")
-        .with(headers: { "Authorization" => "Bearer pp_test_abc" })
+        .with(headers: { "Authorization" => "Bearer pp_sandbox_abc" })
         .to_return(status: 204, body: "")
       expect(client.execute_delete("/v1/documents/doc_abc")).to be_nil
     end
 
-    it "raises GoneError on 410 (re-deleting a soft-deleted document)" do
+    it "raises the API error on a non-2xx (e.g. 403 ENVIRONMENT_PROTECTED)" do
       stub_request(:delete, "https://api.poli.page/v1/documents/doc_abc")
-        .to_return(status: 410, body: '{"code":"GONE","message":"already deleted"}')
+        .to_return(status: 403, body: '{"error":"ENVIRONMENT_PROTECTED","detail":"protected"}')
       expect { client.execute_delete("/v1/documents/doc_abc") }
-        .to raise_error(PoliPage::GoneError) { |e| expect(e.code).to eq("GONE") }
+        .to raise_error(PoliPage::PermissionDeniedError) { |e| expect(e.code).to eq("ENVIRONMENT_PROTECTED") }
     end
   end
 
@@ -69,7 +69,7 @@ RSpec.describe PoliPage::Client do
   end
 
   describe "retry behaviour generalised to GET/DELETE" do
-    subject(:client) { described_class.new(api_key: "pp_test_abc") }
+    subject(:client) { described_class.new(api_key: "pp_sandbox_abc") }
 
     before { allow(client).to receive(:sleep) }
 

@@ -128,30 +128,41 @@ module PoliPage
     end
   end
 
-  # Known API codes (sdk-ruby-plan.md §7.4). The SDK passes through whatever
-  # the API returns — callers may still see codes not in this list. Note:
+  # Known API codes, with the HTTP status the API answers them with. The
+  # list is not a closed set: `Error#code` is whatever string the API
+  # returns, and new codes appear without an SDK release. Note:
   # `STORAGE_REQUIRED` was retired from the deployed API and is NOT exported.
   module ErrorCodes
-    MISSING_API_KEY               = "MISSING_API_KEY"
-    INVALID_API_KEY               = "INVALID_API_KEY"
-    PAYMENT_REQUIRED              = "PAYMENT_REQUIRED"
-    FORBIDDEN                     = "FORBIDDEN"
-    ORGANIZATION_CANCELLED        = "ORGANIZATION_CANCELLED"
-    ORGANIZATION_PURGED           = "ORGANIZATION_PURGED"
-    NOT_FOUND                     = "NOT_FOUND"
-    VERSION_NOT_FOUND             = "VERSION_NOT_FOUND"
-    DOCUMENT_NOT_FOUND            = "DOCUMENT_NOT_FOUND"
-    GONE                          = "GONE"
-    VALIDATION_ERROR              = "VALIDATION_ERROR"
-    MISSING_DATA                  = "MISSING_DATA"
-    MISSING_PROJECT_OR_TEMPLATE   = "MISSING_PROJECT_OR_TEMPLATE"
-    MISSING_TEMPLATE_SLUG         = "MISSING_TEMPLATE_SLUG"
-    PROJECT_REQUIRED_FOR_DOCUMENT = "PROJECT_REQUIRED_FOR_DOCUMENT"
-    INVALID_VERSION_FORMAT        = "INVALID_VERSION_FORMAT"
-    VERSION_REQUIRED              = "VERSION_REQUIRED"
-    INVALID_VERSION_FOR_KEY_ENV   = "INVALID_VERSION_FOR_KEY_ENV"
-    QUOTA_EXCEEDED                = "QUOTA_EXCEEDED"
-    OVERAGE_CAP_EXCEEDED          = "OVERAGE_CAP_EXCEEDED"
-    INTERNAL_ERROR                = "INTERNAL_ERROR"
+    MISSING_API_KEY               = "MISSING_API_KEY"               # 401
+    INVALID_API_KEY               = "INVALID_API_KEY"               # 401
+    ORGANIZATION_PAYMENT_GRACE    = "ORGANIZATION_PAYMENT_GRACE"    # 403
+    ORGANIZATION_CANCELLED        = "ORGANIZATION_CANCELLED"        # 403
+    FORBIDDEN                     = "FORBIDDEN"                     # 403
+    ENVIRONMENT_PROTECTED         = "ENVIRONMENT_PROTECTED"         # 403
+    THUMBNAILS_NOT_AVAILABLE      = "THUMBNAILS_NOT_AVAILABLE"      # 403
+    VALIDATION_ERROR              = "VALIDATION_ERROR"              # 400
+    MISSING_DATA                  = "MISSING_DATA"                  # 400
+    MISSING_TEMPLATE_SLUG         = "MISSING_TEMPLATE_SLUG"         # 400
+    PROJECT_REQUIRED_FOR_DOCUMENT = "PROJECT_REQUIRED_FOR_DOCUMENT" # 400
+    TEMPLATE_ERROR                = "TEMPLATE_ERROR"                # 400
+    EMPTY_DOCUMENT                = "EMPTY_DOCUMENT"                # 400
+    ENVIRONMENT_MISMATCH          = "ENVIRONMENT_MISMATCH"          # 400
+    NOT_FOUND                     = "NOT_FOUND"                     # 404
+    PROJECT_NOT_FOUND             = "PROJECT_NOT_FOUND"             # 404
+    PROJECT_NOT_IN_ENVIRONMENT    = "PROJECT_NOT_IN_ENVIRONMENT"    # 404
+    TEMPLATE_NOT_FOUND            = "TEMPLATE_NOT_FOUND"            # 404
+    DOCUMENT_NOT_FOUND            = "DOCUMENT_NOT_FOUND"            # 404
+    DOCUMENT_GONE                 = "DOCUMENT_GONE"                 # 410
+    ORGANIZATION_PURGED           = "ORGANIZATION_PURGED"           # 410
+    RENDER_BODY_TOO_LARGE         = "RENDER_BODY_TOO_LARGE"         # 413
+    DOCUMENT_TOO_LARGE            = "DOCUMENT_TOO_LARGE"            # 413
+    RATE_LIMIT_EXCEEDED           = "RATE_LIMIT_EXCEEDED"           # 429
+    QUOTA_EXCEEDED                = "QUOTA_EXCEEDED"                # 429
+    OVERAGE_CAP_EXCEEDED          = "OVERAGE_CAP_EXCEEDED"          # 429
+    INTERNAL_ERROR                = "INTERNAL_ERROR"                # 500
+    STORAGE_ACCESS_DENIED         = "STORAGE_ACCESS_DENIED"         # 502
+    PUBLISH_IN_PROGRESS           = "PUBLISH_IN_PROGRESS"           # 503
+    ORGANIZATION_MIGRATING        = "ORGANIZATION_MIGRATING"        # 503
+    RENDER_TIMEOUT                = "RENDER_TIMEOUT"                # 504
   end
 end

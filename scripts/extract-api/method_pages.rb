@@ -34,16 +34,6 @@ module MethodPages
       ]
     },
     {
-      slug: "render-preview",
-      display: "client.render.preview",
-      yard_path: "PoliPage::Resources::Render#preview",
-      example: "render-preview.rb",
-      error_classes: %w[
-        ValidationError NotFoundError AuthenticationError RateLimitError
-        InternalError APIError
-      ]
-    },
-    {
       slug: "render-document",
       display: "client.render.document",
       yard_path: "PoliPage::Resources::Render#document",
@@ -72,7 +62,7 @@ module MethodPages
       yard_path: "PoliPage::Resources::Documents#thumbnails",
       example: "documents-thumbnails.rb",
       error_classes: %w[
-        NotFoundError ValidationError PermissionDeniedError AuthenticationError
+        NotFoundError GoneError ValidationError PermissionDeniedError AuthenticationError
         InternalError APIError
       ]
     },
@@ -81,7 +71,7 @@ module MethodPages
       display: "client.documents.delete",
       yard_path: "PoliPage::Resources::Documents#delete",
       example: "documents-delete.rb",
-      error_classes: %w[NotFoundError GoneError AuthenticationError InternalError APIError]
+      error_classes: %w[NotFoundError PermissionDeniedError AuthenticationError InternalError APIError]
     },
     {
       slug: "render-to-file",

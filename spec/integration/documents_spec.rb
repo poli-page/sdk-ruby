@@ -2,7 +2,7 @@
 
 # Integration test against the deployed develop API. Gated on:
 #   - INTEGRATION=1
-#   - POLI_PAGE_API_KEY=pp_test_...
+#   - POLI_PAGE_API_KEY=pp_sandbox_... (a sandbox key; any environment's key works)
 
 return unless ENV["INTEGRATION"] == "1"
 
@@ -24,11 +24,9 @@ RSpec.describe "PoliPage::Client#documents.* (integration)" do
 
   let(:project)  { ENV.fetch("POLI_PAGE_TEST_PROJECT", "getting-started") }
   let(:template) { ENV.fetch("POLI_PAGE_TEST_TEMPLATE", "welcome") }
-  let(:version)  { ENV.fetch("POLI_PAGE_TEST_VERSION", "1.0.0") }
 
   let(:descriptor) do
-    client.render.document(project: project, template: template, version: version,
-                           data: { name: "Ada" })
+    client.render.document(project: project, template: template, data: { name: "Ada" })
   end
 
   it "documents.get round-trips a freshly rendered descriptor" do
@@ -45,6 +43,12 @@ RSpec.describe "PoliPage::Client#documents.* (integration)" do
     expect(result.page_count).to be >= 1
   end
 
+  it "documents.thumbnails works with no options (API defaults)" do
+    thumbs = client.documents.thumbnails(descriptor.document_id)
+    expect(thumbs).not_to be_empty
+    expect(thumbs.first).to be_a(PoliPage::Thumbnail)
+  end
+
   it "documents.thumbnails returns an array of Thumbnail" do
     thumbs = client.documents.thumbnails(descriptor.document_id, width: 320)
     expect(thumbs).to be_an(Array)
@@ -54,9 +58,11 @@ RSpec.describe "PoliPage::Client#documents.* (integration)" do
     expect(thumbs.first.data).to be_a(String)
   end
 
-  it "documents.delete removes the document; re-deleting raises GoneError" do
+  it "documents.delete removes the document and is idempotent" do
     id = descriptor.document_id
     expect(client.documents.delete(id)).to be_nil
-    expect { client.documents.delete(id) }.to raise_error(PoliPage::GoneError)
+    expect(client.documents.delete(id)).to be_nil
+    expect { client.documents.get(id) }
+      .to raise_error(PoliPage::GoneError) { |e| expect(e.code).to eq("DOCUMENT_GONE") }
   end
 end

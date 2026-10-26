@@ -9,7 +9,6 @@ module PoliPage
     module Constants
       # API paths (relative to the configured base URL).
       PATH_RENDER          = "/v1/render"
-      PATH_RENDER_PREVIEW  = "/v1/render/preview"
       PATH_DOCUMENTS       = "/v1/documents"
 
       # Defaults (in seconds where applicable — Ruby's `Kernel#sleep`,

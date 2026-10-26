@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require_relative "models/preview_result"
 require_relative "models/document_descriptor"
 
 module PoliPage
@@ -13,74 +12,43 @@ module PoliPage
         @client = client
       end
 
-      # POST /v1/render/preview — render and return the HTML, total page
-      # count, and the environment ("sandbox" / "live") inferred from the
-      # API key. Accepts both project mode and inline mode (the only render-*
-      # method that does).
-      #
-      # @param template        [String]  template slug (project mode) OR raw HTML (inline mode)
-      # @param data            [Hash]    template data
-      # @param project         [String, nil] project slug; required for project mode
-      # @param version         [String, nil] exact semver (e.g. "1.0.0") or "draft"
-      # @param format          [String, nil] one of `PoliPage::PageFormat::FORMATS`; default A4
-      # @param orientation     [String, nil] "portrait" or "landscape"; default portrait
-      # @param locale          [String, nil] BCP 47 (e.g. "en-US")
-      # @param metadata        [Hash, nil]   primitive-valued metadata echoed on render.document responses
-      # @param idempotency_key [String, nil] caller-supplied UUID; auto-generated if nil
-      # @return [PoliPage::PreviewResult]
-      # @raise  [PoliPage::ValidationError] on 400
-      # @raise  [PoliPage::AuthenticationError] on 401
-      #
-      # @example Project mode
-      #   result = client.render.preview(
-      #     project: "billing", template: "invoice", version: "1.0.0",
-      #     data:    { invoice_number: "INV-001" }
-      #   )
-      #   puts result.html
-      #   puts "#{result.total_pages} page(s) in #{result.environment} mode"
-      #
-      # @example Inline mode (raw HTML; only render.preview accepts this)
-      #   result = client.render.preview(
-      #     template: "<h1>Hello {{ name }}</h1>",
-      #     data:     { name: "World" }
-      #   )
-      def preview(template:, data:, project: nil, version: nil, format: nil,
-                  orientation: nil, locale: nil, metadata: nil,
-                  idempotency_key: nil)
-        validate_render_kwargs!(format: format, orientation: orientation)
-        body = { project: project, template: template, data: data, version: version,
-                 format: format, orientation: orientation, locale: locale, metadata: metadata }.compact
-        parsed = @client.execute_post(Internal::Constants::PATH_RENDER_PREVIEW,
-                                      body: body, idempotency_key: idempotency_key)
-        PoliPage::PreviewResult.new(**parsed)
-      end
-
       # POST /v1/render — render and store the document, returning a
       # `PoliPage::DocumentDescriptor` with the client back-reference attached
-      # so that `#download_pdf` works. Project mode only.
+      # so that `#download_pdf` works. The API renders the project's copy
+      # published in the API key's environment; the SDK never sends an
+      # environment. The request body holds only the seven render fields
+      # (`project`, `template`, `data`, `metadata`, `format`, `orientation`,
+      # `locale`); unset optional fields are omitted.
       #
+      # @param project         [String]      project slug
+      # @param template        [String]      template slug inside the project
+      # @param data            [Hash]        template data
+      # @param format          [String, nil] one of `PoliPage::PageFormat::FORMATS`; API default when nil
+      # @param orientation     [String, nil] "portrait" or "landscape"; API default when nil
+      # @param locale          [String, nil] BCP 47 (e.g. "en-US")
+      # @param metadata        [Hash, nil]   primitive-valued metadata echoed on the descriptor
+      # @param idempotency_key [String, nil] caller-supplied UUID; auto-generated if nil
       # @return [PoliPage::DocumentDescriptor]
+      # @raise  [PoliPage::ValidationError] on 400
+      # @raise  [PoliPage::NotFoundError]   on 404 (e.g. `TEMPLATE_NOT_FOUND`, `PROJECT_NOT_IN_ENVIRONMENT`)
       #
       # @example
       #   doc = client.render.document(
       #     project:  "billing",
       #     template: "invoice",
-      #     version:  "1.0.0",
       #     data:     { invoice_number: "INV-001" },
       #     metadata: { customer_id: "cust_123" }   # echoed on the descriptor
       #   )
       #   db.invoices.update(id: "INV-001", document_id: doc.document_id)
       #   pdf = doc.download_pdf
-      def document(project:, template:, data:, version: nil, format: nil,
-                   orientation: nil, locale: nil, metadata: nil,
-                   idempotency_key: nil)
+      def document(project:, template:, data:, format: nil, orientation: nil,
+                   locale: nil, metadata: nil, idempotency_key: nil)
         validate_render_kwargs!(format: format, orientation: orientation)
-        body = { project: project, template: template, data: data, version: version,
-                 format: format, orientation: orientation, locale: locale, metadata: metadata }.compact
+        body = { project: project, template: template, data: data, metadata: metadata,
+                 format: format, orientation: orientation, locale: locale }.compact
         parsed = @client.execute_post(Internal::Constants::PATH_RENDER,
                                       body: body, idempotency_key: idempotency_key)
-        parsed[:metadata] ||= {}
-        PoliPage::DocumentDescriptor.new(**parsed, _client: @client)
+        PoliPage::DocumentDescriptor.from_wire(parsed, client: @client)
       end
 
       # Two-hop: render the document, then fetch the presigned PDF URL and
@@ -92,14 +60,14 @@ module PoliPage
       #
       # @example
       #   pdf = client.render.pdf(
-      #     project: "billing", template: "invoice", version: "1.0.0",
+      #     project: "billing", template: "invoice",
       #     data:    { invoice_number: "INV-001" }
       #   )
       #   File.binwrite("invoice.pdf", pdf)
-      def pdf(project:, template:, data:, version: nil, format: nil,
-              orientation: nil, locale: nil, metadata: nil, idempotency_key: nil)
+      def pdf(project:, template:, data:, format: nil, orientation: nil,
+              locale: nil, metadata: nil, idempotency_key: nil)
         desc = document(project: project, template: template, data: data,
-                        version: version, format: format, orientation: orientation,
+                        format: format, orientation: orientation,
                         locale: locale, metadata: metadata, idempotency_key: idempotency_key)
         desc.download_pdf
       end
@@ -116,28 +84,28 @@ module PoliPage
       # @example Block form — pipe straight to a file
       #   File.open("invoice.pdf", "wb") do |io|
       #     client.render.pdf_stream(
-      #       project: "billing", template: "invoice", version: "1.0.0", data: data
+      #       project: "billing", template: "invoice", data: data
       #     ) { |chunk| io.write(chunk) }
       #   end
       #
       # @example Enumerator form
       #   enum = client.render.pdf_stream(
-      #     project: "billing", template: "invoice", version: "1.0.0", data: data
+      #     project: "billing", template: "invoice", data: data
       #   )
       #   total = enum.sum(&:bytesize)
-      def pdf_stream(project:, template:, data:, version: nil, format: nil,
-                     orientation: nil, locale: nil, metadata: nil, idempotency_key: nil, &block)
+      def pdf_stream(project:, template:, data:, format: nil, orientation: nil,
+                     locale: nil, metadata: nil, idempotency_key: nil, &block)
         unless block
           return Enumerator.new do |yielder|
             pdf_stream(project: project, template: template, data: data,
-                       version: version, format: format, orientation: orientation,
+                       format: format, orientation: orientation,
                        locale: locale, metadata: metadata,
                        idempotency_key: idempotency_key) { |chunk| yielder << chunk }
           end
         end
 
         desc = document(project: project, template: template, data: data,
-                        version: version, format: format, orientation: orientation,
+                        format: format, orientation: orientation,
                         locale: locale, metadata: metadata, idempotency_key: idempotency_key)
         @client.stream_bytes(desc.presigned_pdf_url, &block)
       end

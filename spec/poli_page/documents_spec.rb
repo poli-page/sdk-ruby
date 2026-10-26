@@ -5,20 +5,8 @@
 # fragment), followed by kwargs as needed.
 
 RSpec.describe PoliPage::Resources::Documents do
-  let(:client) { PoliPage::Client.new(api_key: "pp_test_abc", max_retries: 0) }
-  let(:descriptor_json) do
-    JSON.generate(
-      documentId: "doc_abc123", organizationId: "org_xyz",
-      projectId: "proj_42", projectSlug: "billing",
-      templateId: "tpl_invoice_v1", templateSlug: "invoice",
-      version: "1.0.0", environment: "live", apiKeyId: "key_live_abc",
-      format: "A4", orientation: "portrait", locale: "en-US",
-      pageCount: 2, sizeBytes: 38_421,
-      createdAt: "2026-04-30T19:45:22Z", metadata: {},
-      expiresAt: "2026-04-30T20:00:22Z",
-      presignedPdfUrl: "https://s3.example/presigned/x.pdf"
-    )
-  end
+  let(:client) { PoliPage::Client.new(api_key: "pp_sandbox_abc", max_retries: 0) }
+  let(:descriptor_json) { DocumentDescriptorJSON.build }
 
   describe "#get" do
     it "GETs /v1/documents/:id and returns a DocumentDescriptor" do
@@ -49,6 +37,31 @@ RSpec.describe PoliPage::Resources::Documents do
       stub_request(:get, "https://api.poli.page/v1/documents/missing")
         .to_return(status: 404, body: '{"code":"DOCUMENT_NOT_FOUND","message":"nope"}')
       expect { client.documents.get("missing") }.to raise_error(PoliPage::NotFoundError)
+    end
+
+    it "raises GoneError with code DOCUMENT_GONE on 410 (deleted or expired sandbox document)" do
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_old")
+        .to_return(status: 410, body: '{"error":"DOCUMENT_GONE","detail":"gone"}')
+      expect { client.documents.get("doc_old") }
+        .to raise_error(PoliPage::GoneError) { |e| expect(e.code).to eq(PoliPage::ErrorCodes::DOCUMENT_GONE) }
+    end
+
+    it "decodes any environment name, e.g. staging" do
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_abc123")
+        .to_return(status: 200, body: DocumentDescriptorJSON.build(environment: "staging"))
+      expect(client.documents.get("doc_abc123").environment).to eq("staging")
+    end
+
+    it "defaults a missing metadata to {}" do
+      body = JSON.generate(JSON.parse(descriptor_json).except("metadata"))
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_abc123").to_return(status: 200, body: body)
+      expect(client.documents.get("doc_abc123").metadata).to eq({})
+    end
+
+    it "ignores response fields it does not know (e.g. a legacy version)" do
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_abc123")
+        .to_return(status: 200, body: DocumentDescriptorJSON.build(version: "1.0.0"))
+      expect(client.documents.get("doc_abc123").to_h).not_to have_key(:version)
     end
   end
 
@@ -122,6 +135,41 @@ RSpec.describe PoliPage::Resources::Documents do
       expect(result).to be_an(Array)
     end
 
+    it "sends {} when no option is given" do
+      stub = stub_request(:post, "https://api.poli.page/v1/documents/doc_abc/thumbnails")
+             .with { |req| JSON.parse(req.body) == {} }
+             .to_return(status: 200, body: thumbs_response)
+      expect(client.documents.thumbnails("doc_abc").size).to eq(2)
+      expect(stub).to have_been_requested
+    end
+
+    it "sends {} when every option is nil" do
+      stub = stub_request(:post, "https://api.poli.page/v1/documents/doc_abc/thumbnails")
+             .with { |req| JSON.parse(req.body) == {} }
+             .to_return(status: 200, body: thumbs_response)
+      client.documents.thumbnails("doc_abc", width: nil, format: nil)
+      expect(stub).to have_been_requested
+    end
+
+    it "accepts webp and forwards every option without a client-side check" do
+      stub = stub_request(:post, "https://api.poli.page/v1/documents/doc_abc/thumbnails")
+             .with do |req|
+               JSON.parse(req.body) == {
+                 "thumbnails" => { "width" => 10, "format" => "webp", "quality" => 500, "pages" => [0] }
+               }
+             end
+             .to_return(status: 200, body: thumbs_response)
+      client.documents.thumbnails("doc_abc", width: 10, format: "webp", quality: 500, pages: [0])
+      expect(stub).to have_been_requested
+    end
+
+    it "surfaces the API's 400 VALIDATION_ERROR for out-of-bounds options" do
+      stub_request(:post, "https://api.poli.page/v1/documents/doc_abc/thumbnails")
+        .to_return(status: 400, body: '{"error":"VALIDATION_ERROR","detail":"width must be >= 50"}')
+      expect { client.documents.thumbnails("doc_abc", width: 10) }
+        .to raise_error(PoliPage::ValidationError) { |e| expect(e.code).to eq("VALIDATION_ERROR") }
+    end
+
     it "omits nil-valued knobs from the wire body" do
       stub = stub_request(:post, "https://api.poli.page/v1/documents/doc_abc/thumbnails")
              .with do |req|
@@ -149,10 +197,12 @@ RSpec.describe PoliPage::Resources::Documents do
       expect(stub).to have_been_requested
     end
 
-    it "raises GoneError on 410 (re-deleting an already-deleted document)" do
-      stub_request(:delete, "https://api.poli.page/v1/documents/doc_abc")
-        .to_return(status: 410, body: '{"code":"GONE","message":"already deleted"}')
-      expect { client.documents.delete("doc_abc") }.to raise_error(PoliPage::GoneError)
+    it "is idempotent: re-deleting an already-deleted document resolves on 204" do
+      stub = stub_request(:delete, "https://api.poli.page/v1/documents/doc_abc")
+             .to_return(status: 204, body: "")
+      expect(client.documents.delete("doc_abc")).to be_nil
+      expect(client.documents.delete("doc_abc")).to be_nil
+      expect(stub).to have_been_requested.twice
     end
   end
 end
