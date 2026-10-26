@@ -17,23 +17,24 @@ window.
 
 ### Removed
 
-- **`render.preview`** and its **`PreviewResult`** type. The API removed
-  `POST /v1/render/preview` (a call now gets `404`). `documents.preview(id)`
-  stays.
-- **Inline mode**: the `InlineModeInput` type and raw HTML in `template:`.
-  `template:` is always a slug.
-- The **`version:`** keyword of `render.document`, `render.pdf`,
-  `render.pdf_stream` and `render_to_file`, and with it draft rendering by an
-  API key. Passing `version:` now raises `ArgumentError`.
-- The **`version`** field of `DocumentDescriptor`.
-- From `PoliPage::ErrorCodes`: `VERSION_NOT_FOUND`, `INVALID_VERSION_FORMAT`,
-  `VERSION_REQUIRED`, `INVALID_VERSION_FOR_KEY_ENV`,
+- **BREAKING**: **`render.preview`** and its **`PreviewResult`** type. The
+  API removed `POST /v1/render/preview` (a call now gets `404`).
+  `documents.preview(id)` stays.
+- **BREAKING**: **Inline mode**: the `InlineModeInput` type and raw HTML in
+  `template:`. `template:` is always a slug.
+- **BREAKING**: The **`version:`** keyword of `render.document`,
+  `render.pdf`, `render.pdf_stream` and `render_to_file`, and with it draft
+  rendering by an API key. Passing `version:` now raises `ArgumentError`.
+- **BREAKING**: The **`version`** field of `DocumentDescriptor`.
+- **BREAKING**: From `PoliPage::ErrorCodes`: `VERSION_NOT_FOUND`,
+  `INVALID_VERSION_FORMAT`, `VERSION_REQUIRED`, `INVALID_VERSION_FOR_KEY_ENV`,
   `MISSING_PROJECT_OR_TEMPLATE`, `GONE` (the API answers `410 DOCUMENT_GONE`)
   and `PAYMENT_REQUIRED` (payment grace is `403 ORGANIZATION_PAYMENT_GRACE`).
 
 ### Changed
 
-- `ProjectModeInput` is renamed **`RenderInput`** and is the only input type.
+- **BREAKING**: `ProjectModeInput` is renamed **`RenderInput`** and is the
+  only input type.
 - The render body is built from the seven documented fields only
   (`project`, `template`, `data`, `metadata`, `format`, `orientation`,
   `locale`); unset optional fields are omitted. The SDK never sends an
@@ -42,10 +43,13 @@ window.
   `live`, `staging`, …), returned unchanged. Response fields the SDK does not
   know are ignored instead of failing the `Data.define` constructor.
 - `documents.thumbnails(id)` takes optional options: `width:` is no longer
-  required (API default 400), `format:` accepts `"webp"` (API default
-  `"jpeg"`), and the SDK no longer pre-checks `width`, `format`, `quality` or
-  `pages` (the API answers `400 VALIDATION_ERROR`). With no option set the
-  body is `{}`. `ThumbnailOptions.new` takes every field as optional.
+  required (API default 400) and `format:` accepts `"webp"` (API default
+  `"jpeg"`). With no option set the body is `{}`. `ThumbnailOptions.new`
+  takes every field as optional.
+- **BREAKING**: `documents.thumbnails(id)` no longer pre-checks `width`,
+  `format`, `quality` or `pages`: an out-of-bounds option raises
+  `PoliPage::ValidationError` (the API's `400 VALIDATION_ERROR`) instead of
+  `PoliPage::InvalidOptionsError` before the request.
 - `documents.delete` is documented as idempotent: the API answers `204` again
   for an already-deleted document, so a re-delete returns `nil`.
 
