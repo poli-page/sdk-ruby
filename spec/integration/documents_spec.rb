@@ -29,6 +29,17 @@ RSpec.describe "PoliPage::Client#documents.* (integration)" do
     client.render.document(project: project, template: template, data: { name: "Ada" })
   end
 
+  # Thumbnails are tier-gated on the API side: a Free-plan organization gets
+  # THUMBNAILS_NOT_AVAILABLE. Skip the thumbnail assertions there, as the
+  # other SDKs' integration suites do; any other error still fails.
+  def thumbnails_or_skip(*args, **opts)
+    client.documents.thumbnails(*args, **opts)
+  rescue PoliPage::Error => e
+    raise unless e.code == "THUMBNAILS_NOT_AVAILABLE"
+
+    skip "thumbnails are not available on this organization's plan (#{e.code})"
+  end
+
   it "documents.get round-trips a freshly rendered descriptor" do
     fetched = client.documents.get(descriptor.document_id)
     expect(fetched).to be_a(PoliPage::DocumentDescriptor)
@@ -44,13 +55,13 @@ RSpec.describe "PoliPage::Client#documents.* (integration)" do
   end
 
   it "documents.thumbnails works with no options (API defaults)" do
-    thumbs = client.documents.thumbnails(descriptor.document_id)
+    thumbs = thumbnails_or_skip(descriptor.document_id)
     expect(thumbs).not_to be_empty
     expect(thumbs.first).to be_a(PoliPage::Thumbnail)
   end
 
   it "documents.thumbnails returns an array of Thumbnail" do
-    thumbs = client.documents.thumbnails(descriptor.document_id, width: 320)
+    thumbs = thumbnails_or_skip(descriptor.document_id, width: 320)
     expect(thumbs).to be_an(Array)
     expect(thumbs).not_to be_empty
     expect(thumbs.first).to be_a(PoliPage::Thumbnail)

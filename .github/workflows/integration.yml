@@ -31,6 +31,9 @@ jobs:
     if: github.event_name != 'push' || github.repository_owner == 'poli-page'
     env:
       INTEGRATION: "1"
+      # The coverage floor in spec_helper.rb is for the full suite (ci.yml);
+      # the integration specs alone cannot reach it.
+      SIMPLECOV_NO_FAIL: "1"
       POLI_PAGE_API_KEY: ${{ secrets.POLI_PAGE_API_KEY }}
       POLI_PAGE_TEST_BASE_URL: ${{ secrets.POLI_PAGE_TEST_BASE_URL }}
       POLI_PAGE_TEST_PROJECT: ${{ vars.POLI_PAGE_TEST_PROJECT }}
