@@ -10,7 +10,7 @@ Breaking releases (minor bumps while on 0.x) are summarized in
 
 ## [Unreleased]
 
-## [0.10.0] - 2026-10-26
+## [0.10.0] - 2026-10-27
 
 Environments contract: an API key carries its environment (`pp_{env}_…`,
 e.g. `pp_sandbox_…`, `pp_live_…`, `pp_staging_…`) and a render uses the
