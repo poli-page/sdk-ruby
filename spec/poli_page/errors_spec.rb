@@ -60,6 +60,7 @@ RSpec.describe PoliPage::Error do
       [503, 500, 429, 403, nil].each do |status|
         expect(PoliPage::DownloadError.new(status: status).retryable?).to be(false), "storage status #{status.inspect}"
       end
+      expect(PoliPage::APIError.new("m", code: "PUBLISH_IN_PROGRESS", status: 503).retryable?).to be true
     end
   end
 
