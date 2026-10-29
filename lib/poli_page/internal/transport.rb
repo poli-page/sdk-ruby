@@ -104,9 +104,15 @@ module PoliPage
       # @return        [Response]
       # @raise         [PoliPage::TimeoutError, PoliPage::ConnectionError]
       def execute(method:, path:, headers:, body: nil)
-        attempt = { deadline: HTTP.monotonic_now + @timeout, head: nil, watchdog: nil }
         uri = URI.parse(HTTP.build_url(@base_url, path))
-        perform(uri, build_request(method, uri, headers, body), attempt)
+        request = build_request(method, uri, headers, body)
+        run_attempt(uri, request, { deadline: HTTP.monotonic_now + @timeout, head: nil, watchdog: nil })
+      end
+
+      private
+
+      def run_attempt(uri, request, attempt)
+        perform(uri, request, attempt)
       rescue StandardError => e
         # Once the watchdog has closed the connection, whatever `Net::HTTP`
         # raises next is that timeout.
@@ -114,8 +120,6 @@ module PoliPage
 
         failed(e, attempt)
       end
-
-      private
 
       def perform(uri, request, attempt)
         http = self.class.build_http(uri, timeout: @timeout, proxy: @proxy, ca_file: @ca_file, ca_path: @ca_path)
