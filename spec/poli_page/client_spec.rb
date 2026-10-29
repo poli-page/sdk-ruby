@@ -175,6 +175,34 @@ RSpec.describe PoliPage::Client do
     end
   end
 
+  describe "a 2xx whose body is not a JSON object" do
+    let(:errors) { [] }
+    let(:client) { described_class.new(api_key: api_key, max_retries: 2, on_error: ->(e) { errors << e }) }
+
+    {
+      "not JSON" => { status: 200, body: "<html>ok</html>" },
+      "empty" => { status: 200, body: "" },
+      "absent (204)" => { status: 204 },
+      "a JSON array" => { status: 200, body: "[]" }
+    }.each do |label, answer|
+      it "raises INTERNAL_ERROR through on_error, without retrying, when it is #{label}" do
+        stub = stub_request(:get, "https://api.poli.page/v1/documents/doc_abc").to_return(answer)
+        expect { client.documents.get("doc_abc") }
+          .to raise_error(PoliPage::InternalError, /response body was not/) { |e|
+            expect([e.code, e.status, e.retryable?]).to eq(["INTERNAL_ERROR", answer[:status], false])
+          }
+        expect(errors.map(&:class)).to eq([PoliPage::InternalError])
+        expect(stub).to have_been_requested.once
+      end
+    end
+
+    it "keeps the JSON parser's error as cause" do
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_abc").to_return(status: 200, body: "{")
+      expect { client.documents.get("doc_abc") }
+        .to raise_error(PoliPage::InternalError) { |e| expect(e.cause).to be_a(JSON::ParserError) }
+    end
+  end
+
   describe "thread safety smoke" do
     it "supports concurrent calls on a single client" do
       client = described_class.new(api_key: api_key, max_retries: 0)

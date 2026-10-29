@@ -157,8 +157,8 @@ module PoliPage
   end
 
   class InternalError < Error
-    def initialize(message, status: nil)
-      super(message, code: "INTERNAL_ERROR", status: status, request_id: nil)
+    def initialize(message, status: nil, cause: nil)
+      super(message, code: "INTERNAL_ERROR", status: status, request_id: nil, cause: cause)
     end
   end
 

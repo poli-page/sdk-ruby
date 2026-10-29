@@ -58,7 +58,7 @@ module PoliPage
   end
 
   class InternalError < Error
-    def initialize: (String message, ?status: Integer?) -> void
+    def initialize: (String message, ?status: Integer?, ?cause: Exception?) -> void
   end
 
   module ErrorCodes

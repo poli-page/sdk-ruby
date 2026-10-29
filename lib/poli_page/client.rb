@@ -220,11 +220,17 @@ module PoliPage
       { ok: false, error: error, retry_after: retry_after, retryable: retryable }
     end
 
+    # A 2xx whose body is not a JSON object (not JSON, empty, or another
+    # JSON value) raises `INTERNAL_ERROR`, not retried, through `on_error`
+    # like any error the SDK is about to raise (sdk-specification.md §4.1).
     def parse_json_response(response)
-      parsed = JSON.parse(response.body)
-      Internal::Wire.from_wire(parsed, Internal::Wire::PAYLOAD_KEYS)
+      parsed = JSON.parse(response.body.to_s)
+      return Internal::Wire.from_wire(parsed, Internal::Wire::PAYLOAD_KEYS) if parsed.is_a?(Hash)
+
+      raise_terminal(PoliPage::InternalError.new("response body was not a JSON object", status: response.status))
     rescue JSON::ParserError => e
-      raise PoliPage::InternalError.new("response body was not valid JSON: #{e.message}", status: response.status)
+      raise_terminal(PoliPage::InternalError.new("response body was not valid JSON: #{e.message}",
+                                                 status: response.status, cause: e))
     end
 
     def fire_hook(hook, event)
