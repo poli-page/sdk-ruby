@@ -1,6 +1,6 @@
 version: 2
 
-# Mirrors the Node SDK setup. Weekly schedule keeps PR volume low; dev
+# Mirrors the Node SDK setup. Bundler is weekly to keep PR volume low; dev
 # deps are grouped so a single bundler bump shows up as one PR.
 # See sdk-ruby-plan.md §16.6.
 
@@ -22,13 +22,27 @@ updates:
         applies-to: version-updates
         dependency-type: development
 
+  # Daily, so a new API contract version (poli-page/api-contract, pinned in
+  # ci.yml and release.yml) arrives as its own PR the next day; its CI shows
+  # what the API change breaks. Other action bumps wait 3 days after their
+  # release; the contract is exempt from that cooldown.
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: weekly
+      interval: daily
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+      exclude:
+        - "poli-page/api-contract"
     groups:
+      api-contract:
+        applies-to: version-updates
+        patterns:
+          - "poli-page/api-contract"
       actions:
         applies-to: version-updates
         patterns:
           - "*"
+        exclude-patterns:
+          - "poli-page/api-contract"

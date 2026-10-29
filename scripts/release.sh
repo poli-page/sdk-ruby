@@ -15,7 +15,7 @@
 #   - bundle config set --local frozen true && bundle install
 #   - bundle exec rubocop
 #   - bundle exec rbs validate
-#   - bundle exec rspec spec
+#   - bundle exec rspec spec   (with the pinned API contract, see below)
 #   - bundle exec yard --fail-on-warning
 #   - bundle exec bundle-audit check --update
 #   - INTEGRATION=1 bundle exec rspec spec/integration   (if POLI_PAGE_API_KEY set)
@@ -88,6 +88,24 @@ if [[ "$DRY_RUN" -eq 0 ]] && [[ ! -f "$HOME/.gem/credentials" ]]; then
   fail "~/.gem/credentials missing — gem push will fail. Run 'gem signin' first."
 fi
 
+# ─ API contract ──────────────────────────────────────────────────────────
+# The contract version CI pins (poli-page/api-contract action in
+# .github/workflows/ci.yml). Keep the two in step when Dependabot bumps it.
+CONTRACT_SHA="652ca4cc459314181031de1a0a5b8f647533acf5" # v1.2.0
+echo
+say "API contract"
+if [[ -n "${POLI_CONTRACT:-}" ]]; then
+  [[ -f "$POLI_CONTRACT" ]] || fail "POLI_CONTRACT=${POLI_CONTRACT} is not a file"
+  note "using POLI_CONTRACT=${POLI_CONTRACT}"
+else
+  contract_dir="$(mktemp -d)"
+  POLI_CONTRACT="${contract_dir}/contract.json"
+  curl -fsSL "https://raw.githubusercontent.com/poli-page/api-contract/${CONTRACT_SHA}/contract.json" \
+    -o "$POLI_CONTRACT" || fail "could not download the API contract ${CONTRACT_SHA}"
+  ok "downloaded contract ${CONTRACT_SHA}"
+fi
+export POLI_CONTRACT
+
 # ─ verify (local CI) ─────────────────────────────────────────────────────
 echo
 say "Verify (lint + types + tests + audit + build)"
@@ -95,7 +113,7 @@ bundle config set --local frozen true
 bundle install
 bundle exec rubocop
 bundle exec rbs validate
-bundle exec rspec spec
+CI=true bundle exec rspec spec
 bundle exec yard --fail-on-warning
 bundle exec bundle-audit check --update
 
