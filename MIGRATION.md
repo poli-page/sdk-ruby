@@ -85,6 +85,22 @@ Matching on an SDK error's message needs updating; prefer `code`:
 | `DownloadError` (no answer) | the HTTP library's text | `Failed to download PDF: network error` |
 | non-JSON error body | `HTTP 502: response body was not valid JSON` | `HTTP 502` |
 
+### `format:` and `orientation:` are checked by the API
+
+An unknown `format:` or `orientation:` is no longer refused by the SDK
+before the request: the API answers it with `400 VALIDATION_ERROR`.
+
+```ruby
+# before
+rescue PoliPage::InvalidOptionsError   # "invalid format: ..."
+
+# now
+rescue PoliPage::ValidationError => e  # e.code == "VALIDATION_ERROR", e.status == 400
+```
+
+To refuse a bad value before any request, check it yourself with
+`PoliPage::PageFormat.valid?(format)` and `PoliPage::Orientation.valid?(orientation)`.
+
 ### `project:` nil or empty
 
 `render.*` and `render_to_file` raise `InvalidOptionsError` with code

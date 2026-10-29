@@ -8,7 +8,7 @@ module ErrorsPage
   module_function
 
   SDK_INTERNAL = [
-    { code: "PoliPage::InvalidOptionsError", when: "Constructor or method options are missing or malformed (`apiKey is required`; `project is required` with code PROJECT_REQUIRED_FOR_DOCUMENT). Raised before any HTTP call. Not retryable." },
+    { code: "PoliPage::InvalidOptionsError", when: "`invalid_options`: the constructor got no API key (`apiKey is required`). Also code PROJECT_REQUIRED_FOR_DOCUMENT (`project is required`) when `project:` is nil or empty, and a path `render_to_file` cannot write. Raised before any HTTP call. Not retryable." },
     { code: "PoliPage::ConnectionError",     when: "`network_error`: DNS, TCP or TLS failure, or a connection dropped before the whole answer arrived (`Network request failed`). Retryable." },
     { code: "PoliPage::TimeoutError",        when: "`timeout`: an attempt did not complete within the configured `timeout:` (`Request timed out after <ms>ms`). Retryable." },
     { code: "PoliPage::DownloadError",       when: "`DOWNLOAD_FAILED`: the presigned-URL download failed (`Failed to download PDF: HTTP <status>`, or `Failed to download PDF: network error`). Never retried, whatever the storage status." },

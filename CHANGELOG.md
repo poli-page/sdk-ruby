@@ -64,6 +64,14 @@ Conformance with the Poli Page API contract v1.2.0
   - `DownloadError.new` takes `status:` and `cause:` and builds its message
     from them; `message:` is optional. `ConnectionError.new`'s `message:` is
     optional too.
+- **BREAKING**: `format:` and `orientation:` are no longer checked before the
+  request (SDK specification §5.4: the SDK validates nothing else
+  client-side). A value outside `PoliPage::PageFormat::FORMATS` or
+  `portrait`/`landscape` is sent as given, and the API answers it with
+  `PoliPage::ValidationError` (`400 VALIDATION_ERROR`) instead of the SDK
+  raising `PoliPage::InvalidOptionsError` (`invalid_options`, which the
+  specification keeps for the constructor). `PageFormat.valid?` and
+  `Orientation.valid?` stay for callers who check their own input.
 - `render.document`, `render.pdf`, `render.pdf_stream` and `render_to_file`
   raise `PoliPage::InvalidOptionsError` with code
   `PROJECT_REQUIRED_FOR_DOCUMENT` and message `project is required` before
@@ -74,9 +82,13 @@ Conformance with the Poli Page API contract v1.2.0
   sub-second rest instead of being rounded down to whole seconds. Any other
   value (`1.5`, `-1`, `soon`) falls back to the backoff. `Retry-After-Ms` is
   ignored, as before.
-- The client's `timeout` bounds each whole attempt, body included. Before,
-  it applied to each socket operation, so an answer that kept sending a byte
-  now and then could outlive it. A per-attempt watchdog thread now closes the
+- The client's `timeout` is one deadline for each whole attempt: opening the
+  connection (DNS, TCP, a proxy's `CONNECT`, the TLS handshake), the request
+  and the answer, body included. Before, it applied to each phase and each
+  socket operation on its own, so a slow connection followed by a slow TLS
+  handshake, or an answer that kept sending a byte now and then, could
+  outlive it while the error still named `timeout`. The connection phase is
+  now bounded by the time left, and a per-attempt watchdog thread closes the
   connection at the deadline.
 - An answer's whole body is read inside its attempt. A 2xx cut mid-body is a
   `network_error` (`Network request failed`, the read error as `cause`), and
@@ -95,9 +107,15 @@ Conformance with the Poli Page API contract v1.2.0
   when the error is raised outside the `rescue` that caught the original.
   Network errors, timeouts and download failures carry the HTTP library's
   exception there.
-- `documents.preview` returns its HTML as a UTF-8 string (it was binary,
+- `documents.preview` returns its HTML as a UTF-8 string, read in the
+  `charset` of its `Content-Type` (UTF-8 when there is none). It was binary,
   `ASCII-8BIT`, so any non-ASCII character compared unequal to a UTF-8
-  string).
+  string.
+- A 2xx whose body is not a JSON object (not JSON, empty, absent, or another
+  JSON value) still raises `INTERNAL_ERROR`, not retried, but now fires
+  `on_error` first, like every error the SDK raises, and keeps the parser's
+  error as `cause`. An absent body raised a raw `TypeError` and a JSON array a
+  raw `NoMethodError`.
 - `documents.thumbnails` ignores thumbnail fields the SDK does not know,
   instead of raising `ArgumentError`, so the API can add fields.
 

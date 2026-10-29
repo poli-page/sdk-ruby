@@ -13,6 +13,7 @@ The SDK follows the Poli Page API contract v1.2.0. The full guide is in [`MIGRAT
 - `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` and `STORAGE_ACCESS_DENIED` are no longer retried, and `retryable?` is `false` for them. `DOWNLOAD_FAILED` is never `retryable?`.
 - The predicates read `status` and `code`: a `DownloadError` with a storage 403 is now `auth_error?`.
 - SDK messages are the specification's exact texts: `Network request failed`, `Request timed out after <ms>ms`, `Failed to download PDF: HTTP <status>`, `Failed to download PDF: network error`, `apiKey is required`, and `HTTP <status>` for a non-JSON error body. Match on `code`, not `message`.
+- An unknown `format:` or `orientation:` is sent to the API, which answers `PoliPage::ValidationError` (`400 VALIDATION_ERROR`); the SDK no longer raises `InvalidOptionsError` for it. Check with `PageFormat.valid?` / `Orientation.valid?` if you want to refuse it first.
 - A nil or empty `project:` raises `InvalidOptionsError` (`PROJECT_REQUIRED_FOR_DOCUMENT`) before any request.
 
 ## From 0.9.x to 0.10.0
