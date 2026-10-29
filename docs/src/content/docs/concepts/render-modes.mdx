@@ -19,7 +19,7 @@ There is no version to pick: the API renders the project's copy published in the
 
 ## Optional keywords
 
-- `format:` — one of `PoliPage::PageFormat::FORMATS` (e.g. `"A4"`, `"Letter"`).
+- `format:` — one of `PoliPage::PageFormat::FORMATS` (e.g. `"A4"`, `"Letter"`). The SDK sends what you give; the API answers any other value with `400 VALIDATION_ERROR`.
 - `orientation:` — `"portrait"` or `"landscape"`.
 - `locale:` — a BCP 47 tag (e.g. `"en-US"`).
 - `metadata:` — your own primitive-valued audit data, sent as is and echoed unchanged on the `DocumentDescriptor` (with the API's string keys: `doc.metadata["customerId"]`).

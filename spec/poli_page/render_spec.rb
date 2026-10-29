@@ -171,6 +171,18 @@ RSpec.describe PoliPage::Resources::Render do
     end
   end
 
+  describe "no client-side check of format or orientation (sdk-specification.md §5.4)" do
+    it "sends an unknown format and orientation as given, and surfaces the API's 400" do
+      sent = nil
+      stub_request(:post, "https://api.poli.page/v1/render")
+        .with { |req| sent = JSON.parse(req.body) }
+        .to_return(status: 400, body: '{"error":"VALIDATION_ERROR","detail":"format: invalid enum value"}')
+      expect { client.render.document(project: "p", template: "t", data: {}, format: "A9", orientation: "diagonal") }
+        .to raise_error(PoliPage::ValidationError, "format: invalid enum value")
+      expect(sent.values_at("format", "orientation")).to eq(%w[A9 diagonal])
+    end
+  end
+
   describe "codes never retried (sdk-specification.md §9.1)" do
     let(:client) { PoliPage::Client.new(api_key: "pp_sandbox_abc", max_retries: 2) }
 
