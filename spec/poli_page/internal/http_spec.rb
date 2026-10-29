@@ -75,17 +75,24 @@ RSpec.describe PoliPage::Internal::HTTP do
 
   describe ".sleep_at_least" do
     it "sleeps again for the rest when a sleep returns early" do
+      clock = 100.0
       asked = []
+      allow(described_class).to receive(:monotonic_now) { clock }
       allow(described_class).to receive(:sleep) do |seconds|
         asked << seconds
-        Kernel.sleep(seconds / 2) # a timer that wakes early
+        clock += asked.size == 1 ? seconds - 0.3 : seconds # the first sleep wakes 300 ms early
       end
+      described_class.sleep_at_least(1.0)
+      expect(asked.size).to eq(2)
+      expect(asked.first).to eq(1.0)
+      expect(asked.last).to be_within(1e-9).of(0.3)
+      expect(clock).to be >= 101.0
+    end
+
+    it "waits at least the delay on the real clock" do
       started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       described_class.sleep_at_least(0.05)
-      waited = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
-      expect(waited).to be >= 0.05
-      expect(asked.size).to be > 1
-      expect(asked.first).to be_within(0.01).of(0.05)
+      expect(Process.clock_gettime(Process::CLOCK_MONOTONIC) - started).to be >= 0.05
     end
 
     it "does not sleep for a zero delay" do
