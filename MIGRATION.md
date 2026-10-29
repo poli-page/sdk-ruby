@@ -8,7 +8,7 @@ version does. Every breaking release comes with an entry here.
 
 ## From 0.10.0 to the next release (Unreleased)
 
-The SDK now follows the Poli Page API contract v1.2.0, the same retry policy,
+The SDK now follows the Poli Page API contract v1.3.0, the same retry policy,
 error predicates and messages as every other Poli Page SDK. No method or
 option is renamed. Code may need a change where it relied on the renaming
 of `data` / `metadata` keys, and in error handling.

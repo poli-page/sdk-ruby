@@ -91,7 +91,7 @@ fi
 # ─ API contract ──────────────────────────────────────────────────────────
 # The contract version CI pins (poli-page/api-contract action in
 # .github/workflows/ci.yml). Keep the two in step when Dependabot bumps it.
-CONTRACT_SHA="652ca4cc459314181031de1a0a5b8f647533acf5" # v1.2.0
+CONTRACT_SHA="0eba96c1ecf9a28b7e259f444f3ca5b7c059d5fd" # v1.3.0
 echo
 say "API contract"
 if [[ -n "${POLI_CONTRACT:-}" ]]; then
