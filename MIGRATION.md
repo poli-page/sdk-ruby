@@ -6,6 +6,107 @@ This file documents breaking changes between releases of `poli-page`
 0.x, a breaking change bumps the minor version; from 1.0 on, only a major
 version does. Every breaking release comes with an entry here.
 
+## From 0.10.0 to the next release (Unreleased)
+
+The SDK now follows the Poli Page API contract v1.2.0, the same retry policy,
+error predicates and messages as every other Poli Page SDK. No method or
+option is renamed. Code may need a change where it relied on the renaming
+of `data` / `metadata` keys, and in error handling.
+
+### Payload keys are no longer renamed
+
+The SDK specification says `metadata` is sent as is and returned unchanged,
+and `data` is the template's own data. The SDK used to camelize every key of
+both on the way out and snake_case (and symbolize) every key of `metadata` on
+the way back. It no longer touches them; only its own names (`project:`,
+`template:`, `doc.page_count`, …) keep their Ruby spelling.
+
+- **`data:`** — write the keys your template uses. If it reads
+  `invoiceNumber` and you relied on the conversion, send `invoiceNumber`:
+
+  ```ruby
+  # before (converted to invoiceNumber on the wire)
+  client.render.pdf(project: "billing", template: "invoice", data: { invoice_number: "INV-001" })
+
+  # now (sent as written)
+  client.render.pdf(project: "billing", template: "invoice", data: { invoiceNumber: "INV-001" })
+  ```
+
+- **`metadata:`** — sent as written too; send the keys you want stored.
+  Reads use the API's String keys:
+
+  ```ruby
+  # before
+  doc.metadata[:customer_id]
+
+  # now
+  doc.metadata["customerId"]
+  ```
+
+  Documents rendered before the upgrade keep the keys they were stored with
+  (camelCase, since the old SDK converted them).
+
+### Codes that are no longer retried
+
+`QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` (429) and `STORAGE_ACCESS_DENIED`
+(502) reach you after the first attempt, and `retryable?` is `false` for
+them. `DOWNLOAD_FAILED` is never `retryable?`, whatever the storage status.
+If you requeued on `retryable?`, these no longer requeue: surface the quota
+and the bucket errors instead.
+
+```ruby
+rescue PoliPage::Error => e
+  case e.code
+  when "QUOTA_EXCEEDED", "OVERAGE_CAP_EXCEEDED" then show_banner("Monthly quota reached.")
+  when "STORAGE_ACCESS_DENIED"                  then alert_ops("Bucket access revoked.")
+  else raise unless e.retryable?
+  end
+end
+```
+
+### Predicates read `status` and `code`
+
+`auth_error?` (401/403), `rate_limit_error?` (429), `validation_error?` (400)
+and `network_error?` (`network_error`/`timeout`) no longer look at the class.
+The answer only changes for `PoliPage::DownloadError`: a storage 403 (an
+expired presigned URL) is now `auth_error?`. Rescuing by class works as
+before.
+
+### Messages
+
+Matching on an SDK error's message needs updating; prefer `code`:
+
+| Error | Before | Now |
+| --- | --- | --- |
+| `InvalidOptionsError` (no key) | `api_key is required` | `apiKey is required` |
+| `ConnectionError` | the HTTP library's text | `Network request failed` (`cause` keeps the original) |
+| `TimeoutError` | `request timed out after 60s` | `Request timed out after 60000ms` |
+| `DownloadError` (status) | `Failed to download: 403 Forbidden` | `Failed to download PDF: HTTP 403` |
+| `DownloadError` (no answer) | the HTTP library's text | `Failed to download PDF: network error` |
+| non-JSON error body | `HTTP 502: response body was not valid JSON` | `HTTP 502` |
+
+### `format:` and `orientation:` are checked by the API
+
+An unknown `format:` or `orientation:` is no longer refused by the SDK
+before the request: the API answers it with `400 VALIDATION_ERROR`.
+
+```ruby
+# before
+rescue PoliPage::InvalidOptionsError   # "invalid format: ..."
+
+# now
+rescue PoliPage::ValidationError => e  # e.code == "VALIDATION_ERROR", e.status == 400
+```
+
+To refuse a bad value before any request, check it yourself with
+`PoliPage::PageFormat.valid?(format)` and `PoliPage::Orientation.valid?(orientation)`.
+
+### `project:` nil or empty
+
+`render.*` and `render_to_file` raise `InvalidOptionsError` with code
+`PROJECT_REQUIRED_FOR_DOCUMENT` before any request, instead of sending the
+render and getting a `ValidationError` from the API.
+
 ## From 0.9.x to 0.10.0
 
 0.10.0 follows the environments contract: an API key belongs to exactly one

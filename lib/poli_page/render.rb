@@ -22,28 +22,31 @@ module PoliPage
       #
       # @param project         [String]      project slug
       # @param template        [String]      template slug inside the project
-      # @param data            [Hash]        template data
-      # @param format          [String, nil] one of `PoliPage::PageFormat::FORMATS`; API default when nil
-      # @param orientation     [String, nil] "portrait" or "landscape"; API default when nil
+      # @param data            [Hash]        template data, sent with its keys as given (never renamed)
+      # @param format          [String, nil] one of `PoliPage::PageFormat::FORMATS`; API default when nil.
+      #                                      Sent as given: the API answers another value with `400`.
+      # @param orientation     [String, nil] "portrait" or "landscape"; API default when nil. Sent as given.
       # @param locale          [String, nil] BCP 47 (e.g. "en-US")
-      # @param metadata        [Hash, nil]   primitive-valued metadata echoed on the descriptor
+      # @param metadata        [Hash, nil]   primitive-valued metadata, sent as is and echoed unchanged on the
+      #                                      descriptor (String keys, as the API returns them)
       # @param idempotency_key [String, nil] caller-supplied UUID; auto-generated if nil
       # @return [PoliPage::DocumentDescriptor]
-      # @raise  [PoliPage::ValidationError] on 400
+      # @raise  [PoliPage::InvalidOptionsError] `PROJECT_REQUIRED_FOR_DOCUMENT` when `project` is nil or empty
+      # @raise  [PoliPage::ValidationError] on 400 (e.g. `VALIDATION_ERROR` for an unknown `format`)
       # @raise  [PoliPage::NotFoundError]   on 404 (e.g. `TEMPLATE_NOT_FOUND`, `PROJECT_NOT_IN_ENVIRONMENT`)
       #
       # @example
       #   doc = client.render.document(
       #     project:  "billing",
       #     template: "invoice",
-      #     data:     { invoice_number: "INV-001" },
-      #     metadata: { customer_id: "cust_123" }   # echoed on the descriptor
+      #     data:     { invoiceNumber: "INV-001" },
+      #     metadata: { customerId: "cust_123" }   # echoed on the descriptor
       #   )
       #   db.invoices.update(id: "INV-001", document_id: doc.document_id)
       #   pdf = doc.download_pdf
       def document(project:, template:, data:, format: nil, orientation: nil,
                    locale: nil, metadata: nil, idempotency_key: nil)
-        validate_render_kwargs!(format: format, orientation: orientation)
+        require_project!(project)
         body = { project: project, template: template, data: data, metadata: metadata,
                  format: format, orientation: orientation, locale: locale }.compact
         parsed = @client.execute_post(Internal::Constants::PATH_RENDER,
@@ -61,7 +64,7 @@ module PoliPage
       # @example
       #   pdf = client.render.pdf(
       #     project: "billing", template: "invoice",
-      #     data:    { invoice_number: "INV-001" }
+      #     data:    { invoiceNumber: "INV-001" }
       #   )
       #   File.binwrite("invoice.pdf", pdf)
       def pdf(project:, template:, data:, format: nil, orientation: nil,
@@ -112,19 +115,15 @@ module PoliPage
 
       private
 
-      # Local arg validation — fail fast with a clear `InvalidOptionsError`
-      # before issuing the HTTP request. The deployed API rejects these too,
-      # but raising client-side saves a round-trip and surfaces a friendlier
-      # error message (sdk-ruby-plan.md §9.1).
-      def validate_render_kwargs!(format:, orientation:)
-        if format && !PoliPage::PageFormat.valid?(format)
-          raise PoliPage::InvalidOptionsError,
-                "invalid format: #{format.inspect}; expected one of #{PoliPage::PageFormat::FORMATS.to_a}"
-        end
-        return unless orientation && !PoliPage::Orientation.valid?(orientation)
+      # Ruby cannot make `project` non-nil in its signature: a missing or
+      # empty one raises before any request (sdk-specification.md §5.4).
+      # Nothing else is checked client-side: the API answers a bad `format`,
+      # `orientation` or `data` with `400 VALIDATION_ERROR`.
+      def require_project!(project)
+        return unless project.nil? || project.to_s.empty?
 
-        raise PoliPage::InvalidOptionsError,
-              "invalid orientation: #{orientation.inspect}; expected 'portrait' or 'landscape'"
+        raise PoliPage::InvalidOptionsError.new(Internal::Constants::MESSAGE_PROJECT_REQUIRED,
+                                                code: ErrorCodes::PROJECT_REQUIRED_FOR_DOCUMENT)
       end
     end
   end

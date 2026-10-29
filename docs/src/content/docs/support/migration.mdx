@@ -5,6 +5,17 @@ description: Upgrade guides for moving between breaking releases of the Ruby SDK
 
 This page tracks breaking changes between releases of the `poli-page` gem. While the gem is on 0.x, a breaking change bumps the minor version. For the full per-release diff, see the [changelog](../changelog/).
 
+## From 0.10.0 to the next release
+
+The SDK follows the Poli Page API contract v1.2.0. The full guide is in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md#from-0100-to-the-next-release-unreleased).
+
+- The keys inside `data:` and `metadata:` are sent exactly as written (no more camelizing), and `doc.metadata` comes back as stored, with String keys (`doc.metadata["customerId"]`, not `doc.metadata[:customer_id]`). Send the keys your template and your metadata readers expect.
+- `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` and `STORAGE_ACCESS_DENIED` are no longer retried, and `retryable?` is `false` for them. `DOWNLOAD_FAILED` is never `retryable?`.
+- The predicates read `status` and `code`: a `DownloadError` with a storage 403 is now `auth_error?`.
+- SDK messages are the specification's exact texts: `Network request failed`, `Request timed out after <ms>ms`, `Failed to download PDF: HTTP <status>`, `Failed to download PDF: network error`, `apiKey is required`, and `HTTP <status>` for a non-JSON error body. Match on `code`, not `message`.
+- An unknown `format:` or `orientation:` is sent to the API, which answers `PoliPage::ValidationError` (`400 VALIDATION_ERROR`); the SDK no longer raises `InvalidOptionsError` for it. Check with `PageFormat.valid?` / `Orientation.valid?` if you want to refuse it first.
+- A nil or empty `project:` raises `InvalidOptionsError` (`PROJECT_REQUIRED_FOR_DOCUMENT`) before any request.
+
 ## From 0.9.x to 0.10.0
 
 0.10.0 follows the environments contract: an API key belongs to one environment (`pp_sandbox_…`, `pp_live_…`, `pp_staging_…`) and a render uses the project's copy published in that environment. Every removal ships at once, with no deprecation window. The full guide, with before/after code, is in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md#from-09x-to-0100).

@@ -22,7 +22,7 @@ module PoliPage
     :page_count,
     :size_bytes,
     :created_at,         # ISO 8601 String — not parsed (no extra deps)
-    :metadata,           # Hash; SDK normalises nil → {} after from_wire
+    :metadata,           # Hash with the API's String keys, exactly as stored; nil → {}
     :presigned_pdf_url,
     :expires_at,         # ISO 8601 String
     :_client             # SDK back-reference; not part of the wire shape

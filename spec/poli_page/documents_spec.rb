@@ -66,6 +66,17 @@ RSpec.describe PoliPage::Resources::Documents do
   end
 
   describe "#preview" do
+    it "returns the HTML as UTF-8, read in the charset of its Content-Type" do
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_abc/preview")
+        .to_return({ status: 200, body: "Facture n\xB0 1".b,
+                     headers: { "Content-Type" => "text/html; charset=ISO-8859-1" } },
+                   { status: 200, body: "Facture n°".b, headers: { "Content-Type" => "text/html" } },
+                   { status: 200, body: "Facture n°".b, headers: { "Content-Type" => "text/html; charset=bogus" } })
+      htmls = Array.new(3) { client.documents.preview("doc_abc").html }
+      expect(htmls).to eq(["Facture n° 1", "Facture n°", "Facture n°"])
+      expect(htmls.map(&:encoding).uniq).to eq([Encoding::UTF_8])
+    end
+
     it "GETs /v1/documents/:id/preview, returns html + page_count from X-Document-Page-Count" do
       stub_request(:get, "https://api.poli.page/v1/documents/doc_abc/preview")
         .to_return(status: 200, body: "<html><body>page</body></html>",

@@ -62,7 +62,7 @@ RSpec.describe PoliPage::Internal::Transport do
       expect { transport.execute(method: :post, path: "/v1/render", headers: {}, body: "{}") }
         .to raise_error(PoliPage::ConnectionError) { |e|
           expect(e.code).to eq("network_error")
-          expect(e.message).to include("dns lookup failed")
+          expect(e.message).to eq("Network request failed")
           expect(e.cause).to be_a(SocketError)
         }
     end

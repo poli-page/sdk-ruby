@@ -8,10 +8,10 @@ module ErrorsPage
   module_function
 
   SDK_INTERNAL = [
-    { code: "PoliPage::InvalidOptionsError", when: "Constructor or method options are missing or malformed. Raised before any HTTP call. Not retryable." },
-    { code: "PoliPage::ConnectionError",     when: "TCP/TLS-layer failure reaching the API. Retryable." },
-    { code: "PoliPage::TimeoutError",        when: "The request did not complete within the configured `timeout:`. Retryable." },
-    { code: "PoliPage::DownloadError",       when: "Failure on the unauthenticated presigned-URL second-hop fetch. Not retried by the SDK." },
+    { code: "PoliPage::InvalidOptionsError", when: "`invalid_options`: the constructor got no API key (`apiKey is required`). Also code PROJECT_REQUIRED_FOR_DOCUMENT (`project is required`) when `project:` is nil or empty, and a path `render_to_file` cannot write. Raised before any HTTP call. Not retryable." },
+    { code: "PoliPage::ConnectionError",     when: "`network_error`: DNS, TCP or TLS failure, or a connection dropped before the whole answer arrived (`Network request failed`). Retryable." },
+    { code: "PoliPage::TimeoutError",        when: "`timeout`: an attempt did not complete within the configured `timeout:` (`Request timed out after <ms>ms`). Retryable." },
+    { code: "PoliPage::DownloadError",       when: "`DOWNLOAD_FAILED`: the presigned-URL download failed (`Failed to download PDF: HTTP <status>`, or `Failed to download PDF: network error`). Never retried, whatever the storage status." },
     { code: "PoliPage::InternalError",       when: "Unexpected response shape from the API (e.g., non-JSON body)." }
   ].freeze
 
@@ -21,7 +21,7 @@ module ErrorsPage
     { code: "PoliPage::PermissionDeniedError", when: "HTTP 403 — key lacks permission for the requested resource." },
     { code: "PoliPage::NotFoundError",         when: "HTTP 404 — project/template slug or document id does not exist." },
     { code: "PoliPage::GoneError",             when: "HTTP 410 — document deleted, or a sandbox document over 30 days old." },
-    { code: "PoliPage::RateLimitError",        when: "HTTP 429 — per-key rate limit or monthly quota reached. Retryable." },
+    { code: "PoliPage::RateLimitError",        when: "HTTP 429 — per-key rate limit (retryable) or monthly quota / overage cap reached (not retryable)." },
     { code: "PoliPage::APIError",              when: "Any other 4xx / 5xx the SDK does not map to a more specific class." }
   ].freeze
 
@@ -56,6 +56,7 @@ module ErrorsPage
     { code: "MISSING_TEMPLATE_SLUG",         when: "Template slug is missing." },
     { code: "PROJECT_REQUIRED_FOR_DOCUMENT", when: "render.document was called without `project:`." },
     { code: "TEMPLATE_ERROR",                when: "The engine rejected the template or its data." },
+    { code: "TEMPLATE_UNSAFE",               when: "The template, a partial or an SVG asset holds an injection attempt; the message names it. Not retryable." },
     { code: "EMPTY_DOCUMENT",                when: "The render produced zero pages." },
     { code: "ENVIRONMENT_MISMATCH",          when: "A key caller named another environment. Cannot happen with this SDK." },
     { code: "RENDER_BODY_TOO_LARGE",         when: "Request body over 2 MB (413)." },
@@ -64,13 +65,13 @@ module ErrorsPage
 
   API_RATE = [
     { code: "RATE_LIMIT_EXCEEDED",   when: "Over 120 render requests per 60 s for this key. Retryable." },
-    { code: "QUOTA_EXCEEDED",        when: "Monthly quota reached. Retryable." },
-    { code: "OVERAGE_CAP_EXCEEDED",  when: "Overage cap reached (paid tiers). Retryable." }
+    { code: "QUOTA_EXCEEDED",        when: "Monthly quota reached. Not retryable: it lasts until the monthly reset." },
+    { code: "OVERAGE_CAP_EXCEEDED",  when: "Overage cap reached (paid tiers). Not retryable." }
   ].freeze
 
   API_SERVER = [
     { code: "INTERNAL_ERROR",        when: "Unexpected server error. Retryable." },
-    { code: "STORAGE_ACCESS_DENIED", when: "The organization's bring-your-own bucket refuses access (502). Retryable." },
+    { code: "STORAGE_ACCESS_DENIED", when: "The organization's bring-your-own bucket refuses access (502). Not retryable: it lasts until the bucket role is restored." },
     { code: "PUBLISH_IN_PROGRESS",   when: "The project is being published into this environment (503, with Retry-After). Retryable." },
     { code: "RENDER_TIMEOUT",        when: "The engine's time budget expired (504). Retryable." }
   ].freeze

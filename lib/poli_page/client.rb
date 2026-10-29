@@ -20,8 +20,9 @@ module PoliPage
   # execution back through it.
   #
   # Thread-safety: configuration is immutable after `#initialize`; each
-  # request opens its own `Net::HTTP` connection. A single `Client` may be
-  # safely shared across threads — build one at boot and reuse it.
+  # attempt opens its own `Net::HTTP` connection, so the client keeps no
+  # connection pool or other per-call cache. A single `Client` may be safely
+  # shared across threads — build one at boot and reuse it.
   #
   # @example Construct with defaults
   #   client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
@@ -56,7 +57,7 @@ module PoliPage
                    logger: nil, on_request: nil, on_response: nil,
                    on_retry: nil, on_error: nil,
                    proxy: nil, ca_file: nil, ca_path: nil)
-      raise InvalidOptionsError, "api_key is required" if api_key.nil? || api_key.empty?
+      raise InvalidOptionsError, Internal::Constants::MESSAGE_INVALID_OPTIONS if api_key.nil? || api_key.empty?
 
       @api_key     = api_key
       @base_url    = base_url
@@ -83,12 +84,13 @@ module PoliPage
     alias to_s inspect
 
     # Execute a POST request against `path` with `body` (snake_case hash;
-    # caller's responsibility to compact nils). Returns the parsed
+    # caller's responsibility to compact nils). The SDK's field names are
+    # camelized; the values of `data` and `metadata` are sent as given. Returns the parsed
     # snake_case-symbol-keyed Hash on 2xx, or raises a `PoliPage::Error`.
     #
     # @api private
     def execute_post(path, body:, idempotency_key: nil)
-      wire_body = JSON.generate(Internal::Wire.to_wire(body))
+      wire_body = JSON.generate(Internal::Wire.to_wire(body, Internal::Wire::PAYLOAD_KEYS))
       response = run_with_retry(method: :post, path: path, body: wire_body,
                                 idempotency_key: idempotency_key || Internal::UUID.generate)
       parse_json_response(response)
@@ -158,12 +160,12 @@ module PoliPage
       fire_hook(@on_retry,
                 RetryEvent.new(attempt: attempt + 1, delay_ms: (delay * 1000).round,
                                reason: state[:last_error]))
-      sleep(delay)
+      Internal::HTTP.sleep_at_least(delay)
     end
 
     def raise_terminal(error)
       fire_hook(@on_error, error)
-      raise error
+      raise error, cause: error.cause
     end
 
     def send_once(method:, path:, body:, idempotency_key:, attempt:)
@@ -173,7 +175,7 @@ module PoliPage
                 RequestEvent.new(method: method.to_s.upcase, url: url, attempt: attempt))
       started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       response = @transport.execute(method: method, path: path, headers: headers, body: body)
-      return success_result(response, started_at) if (200..299).cover?(response.status)
+      return success_result(response, started_at) if response.body_error.nil? && (200..299).cover?(response.status)
 
       build_error_result(response)
     rescue PoliPage::TimeoutError, PoliPage::ConnectionError => e
@@ -199,22 +201,36 @@ module PoliPage
       { ok: true, response: response }
     end
 
+    # A non-2xx answer. One whose body could not be read is handled as a body
+    # that is not JSON (`INTERNAL_ERROR`, `HTTP <status>`), keeping the real
+    # status and request id, and is retried by its status like any other.
     def build_error_result(response)
       status = response.status
-      request_id = response.headers[Internal::Constants::HEADER_REQUEST_ID]
-      code, message = Internal::HTTP.parse_error_body(response.body.to_s, status)
-      error = Internal::HTTP.classify(status: status, code: code, message: message, request_id: request_id)
-      retryable = status >= 500 || status == 429
+      code, message = if response.body_error
+                        ["INTERNAL_ERROR", "HTTP #{status}"]
+                      else
+                        Internal::HTTP.parse_error_body(response.body.to_s, status)
+                      end
+      error = Internal::HTTP.classify(status: status, code: code, message: message,
+                                      request_id: response.headers[Internal::Constants::HEADER_REQUEST_ID],
+                                      cause: response.body_error)
+      retryable = error.retryable?
       retry_after_header = response.headers[Internal::Constants::HEADER_RETRY_AFTER]
       retry_after = retryable ? Internal::HTTP.parse_retry_after(retry_after_header) : nil
       { ok: false, error: error, retry_after: retry_after, retryable: retryable }
     end
 
+    # A 2xx whose body is not a JSON object (not JSON, empty, or another
+    # JSON value) raises `INTERNAL_ERROR`, not retried, through `on_error`
+    # like any error the SDK is about to raise (sdk-specification.md §4.1).
     def parse_json_response(response)
-      parsed = JSON.parse(response.body)
-      Internal::Wire.from_wire(parsed)
+      parsed = JSON.parse(response.body.to_s)
+      return Internal::Wire.from_wire(parsed, Internal::Wire::PAYLOAD_KEYS) if parsed.is_a?(Hash)
+
+      raise_terminal(PoliPage::InternalError.new("response body was not a JSON object", status: response.status))
     rescue JSON::ParserError => e
-      raise PoliPage::InternalError.new("response body was not valid JSON: #{e.message}", status: response.status)
+      raise_terminal(PoliPage::InternalError.new("response body was not valid JSON: #{e.message}",
+                                                 status: response.status, cause: e))
     end
 
     def fire_hook(hook, event)

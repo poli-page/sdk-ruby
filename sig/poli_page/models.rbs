@@ -43,7 +43,7 @@ module PoliPage
     attr_reader page_count: Integer
     attr_reader size_bytes: Integer
     attr_reader created_at: String
-    attr_reader metadata: Hash[untyped, untyped]
+    attr_reader metadata: Hash[String, untyped]
     attr_reader presigned_pdf_url: String
     attr_reader expires_at: String
     attr_reader _client: PoliPage::Client?

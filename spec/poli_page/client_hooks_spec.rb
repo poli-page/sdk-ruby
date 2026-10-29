@@ -27,7 +27,7 @@ RSpec.describe PoliPage::Client do
     it "fires on_request before each HTTP attempt with 1-based counter" do
       events = []
       client = described_class.new(api_key: api_key, on_request: ->(e) { events << e })
-      allow(client).to receive(:sleep)
+      allow(PoliPage::Internal::HTTP).to receive(:sleep_at_least)
       stub_request(:post, "https://api.poli.page/v1/render")
         .to_return({ status: 500, body: "{}" }, { status: 200, body: body })
 
@@ -85,7 +85,7 @@ RSpec.describe PoliPage::Client do
     it "does NOT fire on_response on non-2xx (retried 500 then 200)" do
       events = []
       client = described_class.new(api_key: api_key, on_response: ->(e) { events << e })
-      allow(client).to receive(:sleep)
+      allow(PoliPage::Internal::HTTP).to receive(:sleep_at_least)
       stub_request(:post, "https://api.poli.page/v1/render")
         .to_return({ status: 500, body: "{}" }, { status: 200, body: body })
 

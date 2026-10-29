@@ -53,7 +53,7 @@ RSpec.describe PoliPage::Resources::Render do
       expect(desc.to_h).not_to have_key(:version)
     end
 
-    it "sends exactly the seven documented fields, camelCased" do
+    it "sends exactly the seven documented fields" do
       stub = stub_request(:post, "https://api.poli.page/v1/render")
              .with do |req|
                JSON.parse(req.body) == {
@@ -64,10 +64,34 @@ RSpec.describe PoliPage::Resources::Render do
              end
              .to_return(status: 200, body: descriptor_json)
 
-      client.render.document(project: "billing", template: "invoice", data: { invoice_number: "INV-001" },
-                             metadata: { customer_id: "cust_1" }, format: "A4",
+      client.render.document(project: "billing", template: "invoice", data: { invoiceNumber: "INV-001" },
+                             metadata: { customerId: "cust_1" }, format: "A4",
                              orientation: "landscape", locale: "fr-FR", idempotency_key: "abc")
       expect(stub).to have_been_requested
+    end
+
+    it "sends the keys of data and metadata exactly as given, at every depth" do
+      sent = nil
+      stub_request(:post, "https://api.poli.page/v1/render")
+        .with { |req| sent = JSON.parse(req.body) }
+        .to_return(status: 200, body: descriptor_json)
+
+      client.render.document(project: "p", template: "t",
+                             data: { customer_id: "c1", lineItems: [{ unit_price: 9 }], "some_key" => 1 },
+                             metadata: { customer_id: "c1", customerId: "c2" })
+      expect(sent["data"]).to eq({ "customer_id" => "c1", "lineItems" => [{ "unit_price" => 9 }], "some_key" => 1 })
+      expect(sent["metadata"]).to eq({ "customer_id" => "c1", "customerId" => "c2" })
+    end
+
+    it "returns metadata exactly as the API stored it" do
+      body = JSON.parse(descriptor_json).merge(
+        "metadata" => { "someKey" => "a", "some_key" => "b", "nested" => { "innerKey" => 1 } }
+      )
+      stub_request(:post, "https://api.poli.page/v1/render").to_return(status: 200, body: JSON.generate(body))
+
+      doc = client.render.document(project: "p", template: "t", data: {})
+      expect(doc.metadata).to eq({ "someKey" => "a", "some_key" => "b", "nested" => { "innerKey" => 1 } })
+      expect(doc.page_count).to be_a(Integer)
     end
 
     it "omits unset optional fields from the wire body (no nulls)" do
@@ -133,6 +157,43 @@ RSpec.describe PoliPage::Resources::Render do
         .to_return(status: 429, body: '{"error":"QUOTA_EXCEEDED","detail":"quota"}')
       expect { client.render.document(project: "p", template: "t", data: {}) }
         .to raise_error(PoliPage::RateLimitError)
+    end
+
+    it "raises PROJECT_REQUIRED_FOR_DOCUMENT before any request when project is nil or empty" do
+      stub = stub_request(:post, "https://api.poli.page/v1/render")
+      [nil, ""].each do |project|
+        expect { client.render.document(project: project, template: "t", data: {}) }
+          .to raise_error(PoliPage::InvalidOptionsError, "project is required") { |e|
+            expect([e.code, e.status]).to eq(["PROJECT_REQUIRED_FOR_DOCUMENT", nil])
+          }
+      end
+      expect(stub).not_to have_been_requested
+    end
+  end
+
+  describe "no client-side check of format or orientation (sdk-specification.md §5.4)" do
+    it "sends an unknown format and orientation as given, and surfaces the API's 400" do
+      sent = nil
+      stub_request(:post, "https://api.poli.page/v1/render")
+        .with { |req| sent = JSON.parse(req.body) }
+        .to_return(status: 400, body: '{"error":"VALIDATION_ERROR","detail":"format: invalid enum value"}')
+      expect { client.render.document(project: "p", template: "t", data: {}, format: "A9", orientation: "diagonal") }
+        .to raise_error(PoliPage::ValidationError, "format: invalid enum value")
+      expect(sent.values_at("format", "orientation")).to eq(%w[A9 diagonal])
+    end
+  end
+
+  describe "codes never retried (sdk-specification.md §9.1)" do
+    let(:client) { PoliPage::Client.new(api_key: "pp_sandbox_abc", max_retries: 2) }
+
+    { "QUOTA_EXCEEDED" => 429, "OVERAGE_CAP_EXCEEDED" => 429, "STORAGE_ACCESS_DENIED" => 502 }.each do |code, status|
+      it "does not retry #{status} #{code}, even with a Retry-After" do
+        stub = stub_request(:post, "https://api.poli.page/v1/render")
+               .to_return(status: status, body: %({"error":"#{code}"}), headers: { "Retry-After" => "1" })
+        expect { client.render.document(project: "p", template: "t", data: {}) }
+          .to raise_error(PoliPage::Error) { |e| expect([e.code, e.retryable?]).to eq([code, false]) }
+        expect(stub).to have_been_requested.once
+      end
     end
   end
 

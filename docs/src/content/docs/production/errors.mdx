@@ -50,7 +50,10 @@ Returned by the Poli Page API. Uppercase, snake-case. The SDK forwards the code 
   { code: 'ENVIRONMENT_PROTECTED', when: '`documents.delete` in a protected environment by a key without the owner or admin role.', recovery: 'Delete with a key that has the owner or admin role.' },
   { code: 'ORGANIZATION_PAYMENT_GRACE', when: 'The organization has unpaid invoices and is read-only.', recovery: 'Update the payment method in the dashboard.' },
   { code: 'RATE_LIMIT_EXCEEDED', when: 'Too many render requests for this key in a short window.', recovery: 'Automatically retried; spread the load if it persists.' },
-  { code: 'QUOTA_EXCEEDED', when: 'The monthly PDF quota is reached (`sandbox` renders do not count).', recovery: 'Automatically retried; upgrade the plan for more renders.' },
+  { code: 'QUOTA_EXCEEDED', when: 'The monthly PDF quota is reached (`sandbox` renders do not count).', recovery: 'Not retried: it lasts until the monthly reset. Upgrade the plan for more renders.' },
+  { code: 'OVERAGE_CAP_EXCEEDED', when: 'The overage cap is reached (paid tiers).', recovery: 'Not retried: raise the cap in the dashboard.' },
+  { code: 'STORAGE_ACCESS_DENIED', when: 'Your bring-your-own bucket refuses access (502).', recovery: 'Not retried: restore the bucket role.' },
+  { code: 'TEMPLATE_UNSAFE', when: 'The template, a partial or an SVG asset holds an injection attempt (400); the message names it.', recovery: 'Not retried: remove the offending content and publish again.' },
   { code: 'PUBLISH_IN_PROGRESS', when: 'The project is being published into this environment (503, with `Retry-After`).', recovery: 'Automatically retried after the `Retry-After` delay.' },
   { code: 'INTERNAL_ERROR', when: 'The API returned 5xx.', recovery: 'Automatically retried; contact support if it persists.' },
 ]} />
@@ -59,7 +62,9 @@ The full list of API codes lives in [the reference](../../reference/errors/).
 
 ## Predicate helpers
 
-`PoliPage::Error` exposes `#auth_error?`, `#rate_limit_error?`, `#validation_error?`, `#network_error?`, and `#retryable?` for callers who want a single rescue clause backed by introspection.
+`PoliPage::Error` exposes `#auth_error?` (`status` 401 or 403), `#rate_limit_error?` (429), `#validation_error?` (400), `#network_error?` (`code` `network_error` or `timeout`), and `#retryable?` for callers who want a single rescue clause backed by introspection. They read `status` and `code`, not the class, so a `DownloadError` with a storage 403 is an `auth_error?`. `#retryable?` is true for a network error, a timeout, a 5xx or a 429, except `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED`, `STORAGE_ACCESS_DENIED` and `DOWNLOAD_FAILED`.
+
+The SDK's own messages are fixed texts: `Network request failed`, `Request timed out after <ms>ms`, `Failed to download PDF: HTTP <status>` or `Failed to download PDF: network error`, `apiKey is required`, `project is required`, and `HTTP <status>` for an error answer whose body is not JSON. For a network error, a timeout or a failed download, `#cause` is the HTTP library's exception.
 
 ## Example
 
@@ -72,7 +77,7 @@ begin
   pdf = client.render.pdf(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001" }
+    data:     { invoiceNumber: "INV-001" }
   )
 rescue PoliPage::RateLimitError => e
   # Custom strategy beyond the SDK's built-in retries.

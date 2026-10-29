@@ -71,7 +71,7 @@ RSpec.describe PoliPage::Client do
   describe "retry behaviour generalised to GET/DELETE" do
     subject(:client) { described_class.new(api_key: "pp_sandbox_abc") }
 
-    before { allow(client).to receive(:sleep) }
+    before { allow(PoliPage::Internal::HTTP).to receive(:sleep_at_least) }
 
     it "retries GET on 500" do
       stub = stub_request(:get, "https://api.poli.page/v1/documents/doc_abc")

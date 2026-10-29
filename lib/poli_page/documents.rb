@@ -47,7 +47,7 @@ module PoliPage
         response = @client.execute_get_raw("#{path_for(id)}/preview")
         page_count_header = response.headers[Internal::Constants::HEADER_DOCUMENT_PAGE_COUNT]
         page_count = page_count_header.to_s.match?(/\A\d+\z/) ? page_count_header.to_i : 0
-        PoliPage::DocumentPreviewResult.new(html: response.body.to_s, page_count: page_count)
+        PoliPage::DocumentPreviewResult.new(html: html_text(response), page_count: page_count)
       end
 
       # POST /v1/documents/:id/thumbnails — the API expects the options nested
@@ -76,7 +76,8 @@ module PoliPage
         set = options.compact
         body = set.empty? ? {} : { thumbnails: set }
         parsed = @client.execute_post("#{path_for(id)}/thumbnails", body: body)
-        parsed[:thumbnails].map { |t| PoliPage::Thumbnail.new(**t) }
+        # Fields this SDK does not know are ignored (sdk-specification.md §10).
+        parsed[:thumbnails].map { |t| PoliPage::Thumbnail.new(**t.slice(*PoliPage::Thumbnail.members)) }
       end
 
       # DELETE /v1/documents/:id — returns nil on `204`. Idempotent: the API
@@ -94,6 +95,17 @@ module PoliPage
       end
 
       private
+
+      # Net::HTTP hands the body over as binary. Read it in the `charset` of
+      # its `Content-Type` (UTF-8, what the API sends, when there is none or
+      # it is unknown) and return it as UTF-8.
+      def html_text(response)
+        charset = response.headers["content-type"].to_s[/charset="?([^";\s]+)/i, 1]
+        encoding = charset ? Encoding.find(charset) : Encoding::UTF_8
+        response.body.to_s.dup.force_encoding(encoding).encode(Encoding::UTF_8, invalid: :replace, undef: :replace)
+      rescue ArgumentError
+        response.body.to_s.dup.force_encoding(Encoding::UTF_8)
+      end
 
       # Ruby 3.2+ `URI.encode_uri_component` matches JS `encodeURIComponent`
       # (used by sdk-node). `CGI.escape` would form-encode spaces as `+`,
