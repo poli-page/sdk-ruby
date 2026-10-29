@@ -77,7 +77,7 @@ begin
   pdf = client.render.pdf(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001" }
+    data:     { invoiceNumber: "INV-001" }
   )
 rescue PoliPage::RateLimitError => e
   # Custom strategy beyond the SDK's built-in retries.

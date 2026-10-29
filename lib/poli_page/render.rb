@@ -22,11 +22,12 @@ module PoliPage
       #
       # @param project         [String]      project slug
       # @param template        [String]      template slug inside the project
-      # @param data            [Hash]        template data
+      # @param data            [Hash]        template data, sent with its keys as given (never renamed)
       # @param format          [String, nil] one of `PoliPage::PageFormat::FORMATS`; API default when nil
       # @param orientation     [String, nil] "portrait" or "landscape"; API default when nil
       # @param locale          [String, nil] BCP 47 (e.g. "en-US")
-      # @param metadata        [Hash, nil]   primitive-valued metadata echoed on the descriptor
+      # @param metadata        [Hash, nil]   primitive-valued metadata, sent as is and echoed unchanged on the
+      #                                      descriptor (String keys, as the API returns them)
       # @param idempotency_key [String, nil] caller-supplied UUID; auto-generated if nil
       # @return [PoliPage::DocumentDescriptor]
       # @raise  [PoliPage::InvalidOptionsError] `PROJECT_REQUIRED_FOR_DOCUMENT` when `project` is nil or empty
@@ -37,8 +38,8 @@ module PoliPage
       #   doc = client.render.document(
       #     project:  "billing",
       #     template: "invoice",
-      #     data:     { invoice_number: "INV-001" },
-      #     metadata: { customer_id: "cust_123" }   # echoed on the descriptor
+      #     data:     { invoiceNumber: "INV-001" },
+      #     metadata: { customerId: "cust_123" }   # echoed on the descriptor
       #   )
       #   db.invoices.update(id: "INV-001", document_id: doc.document_id)
       #   pdf = doc.download_pdf
@@ -62,7 +63,7 @@ module PoliPage
       # @example
       #   pdf = client.render.pdf(
       #     project: "billing", template: "invoice",
-      #     data:    { invoice_number: "INV-001" }
+      #     data:    { invoiceNumber: "INV-001" }
       #   )
       #   File.binwrite("invoice.pdf", pdf)
       def pdf(project:, template:, data:, format: nil, orientation: nil,

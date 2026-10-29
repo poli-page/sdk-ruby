@@ -11,7 +11,7 @@ File.open("invoice.pdf", "wb") do |io|
   client.render.pdf_stream(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001", total: 1280 }
+    data:     { invoiceNumber: "INV-001", total: 1280 }
   ) { |chunk| io.write(chunk) }
 end
 
@@ -20,6 +20,6 @@ end
 total = client.render.pdf_stream(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 }
+  data:     { invoiceNumber: "INV-001", total: 1280 }
 ).sum(&:bytesize)
 puts "streamed #{total} bytes"

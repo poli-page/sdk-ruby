@@ -11,7 +11,7 @@ client.render_to_file(
   "invoices/INV-001.pdf",
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 }
+  data:     { invoiceNumber: "INV-001", total: 1280 }
 )
 
 puts "wrote invoices/INV-001.pdf"

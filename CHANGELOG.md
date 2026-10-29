@@ -16,6 +16,16 @@ Conformance with the Poli Page API contract v1.2.0
 
 ### Changed
 
+- **BREAKING**: the keys inside `data:` and `metadata:` are no longer
+  renamed. They are sent exactly as you write them, at every depth: before,
+  every key was camelized (`data: { invoice_number: 1 }` reached the template
+  as `invoiceNumber`). `DocumentDescriptor#metadata` is returned exactly as
+  the API stored it, with its String keys: before, every key was snake_cased
+  and symbolized (`{ "customerId" => "c" }` came back as
+  `{ customer_id: "c" }`), and two keys such as `someKey` and `some_key`
+  collided. The SDK's own names (`project`, `template`, the descriptor's
+  readers, the thumbnail options…) keep their Ruby spelling. See
+  [MIGRATION.md](MIGRATION.md#payload-keys-are-no-longer-renamed).
 - **BREAKING**: `QUOTA_EXCEEDED` and `OVERAGE_CAP_EXCEEDED` (429) and
   `STORAGE_ACCESS_DENIED` (502) are no longer retried, even with a
   `Retry-After` header, and `retryable?` returns `false` for them (it

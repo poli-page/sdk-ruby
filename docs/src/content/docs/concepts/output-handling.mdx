@@ -11,7 +11,7 @@ The SDK gives you four ways to handle a rendered PDF: in-memory bytes, a stream 
 pdf = client.render.pdf(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001" }
+  data:     { invoiceNumber: "INV-001" }
 )
 # pdf is a binary-encoded String — write, upload, return as-is.
 ```
@@ -27,7 +27,7 @@ File.open("invoice.pdf", "wb") do |io|
   client.render.pdf_stream(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001" }
+    data:     { invoiceNumber: "INV-001" }
   ) { |chunk| io.write(chunk) }
 end
 ```
@@ -41,7 +41,7 @@ client.render_to_file(
   "invoices/INV-001.pdf",
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001" }
+  data:     { invoiceNumber: "INV-001" }
 )
 ```
 
@@ -53,7 +53,7 @@ When you want the PDF to live on Poli Page's servers (for later download, previe
 doc = client.render.document(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001" }
+  data:     { invoiceNumber: "INV-001" }
 )
 pdf = doc.download_pdf
 ```
@@ -71,7 +71,7 @@ client.render_to_file(
   "invoices/INV-001.pdf",
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 }
+  data:     { invoiceNumber: "INV-001", total: 1280 }
 )
 ```
 

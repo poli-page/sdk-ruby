@@ -45,6 +45,19 @@ RSpec.describe PoliPage::Internal::Wire do
     end
   end
 
+  describe "verbatim payload keys" do
+    it "copies the value of a listed top-level key unchanged, both ways" do
+      out = described_class.to_wire({ data: { customer_id: 1 }, idempotency_key: "k" }, %w[data])
+      expect(out).to eq({ "data" => { customer_id: 1 }, "idempotencyKey" => "k" })
+      back = described_class.from_wire({ "metadata" => { "someKey" => 1 }, "pageCount" => 2 }, %w[metadata])
+      expect(back).to eq({ metadata: { "someKey" => 1 }, page_count: 2 })
+    end
+
+    it "lists data and metadata as the caller's payloads" do
+      expect(described_class::PAYLOAD_KEYS).to eq(%w[data metadata])
+    end
+  end
+
   describe ".from_wire (camelCase → snake_case incoming)" do
     it "transforms top-level string keys to snake_case symbols" do
       expect(described_class.from_wire({ "totalPages" => 3, "environment" => "draft" }))

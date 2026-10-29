@@ -73,7 +73,7 @@ the environment of the key you render with, then swap the slugs:
 pdf = client.render.pdf(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 }
+  data:     { invoiceNumber: "INV-001", total: 1280 }
 )
 ```
 
@@ -119,7 +119,7 @@ template that does not exist, caught as `PoliPage::NotFoundError` with code
 File.open("invoice.pdf", "wb") do |io|
   client.render.pdf_stream(
     project: "billing", template: "invoice",
-    data:    { invoice_number: "INV-001" }
+    data:    { invoiceNumber: "INV-001" }
   ) do |chunk|
     io.write(chunk)
   end
@@ -147,10 +147,12 @@ when you'll fetch the bytes later).
 doc = client.render.document(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001" },
-  metadata: { customer_id: "cust_123" }   # your own audit data
+  data:     { invoiceNumber: "INV-001" },
+  metadata: { customerId: "cust_123" }   # your own audit data
 )
-# doc.document_id, doc.page_count, doc.size_bytes, doc.presigned_pdf_url, doc.metadata, ...
+# doc.document_id, doc.page_count, doc.size_bytes, doc.presigned_pdf_url, ...
+# doc.metadata is returned as stored: { "customerId" => "cust_123" }
+# The keys of data: and metadata: are sent exactly as written (no renaming).
 
 # 2. Persist doc.document_id in your database
 db.invoices.update(id: "INV-001", document_id: doc.document_id)
@@ -374,7 +376,7 @@ thread that enforces `timeout:`.
 CLIENT = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY")).freeze
 
 pdfs = ids.map do |id|
-  Thread.new { CLIENT.render.pdf(project: "billing", template: "invoice", data: { invoice_number: id }) }
+  Thread.new { CLIENT.render.pdf(project: "billing", template: "invoice", data: { invoiceNumber: id }) }
 end.map(&:value)
 ```
 

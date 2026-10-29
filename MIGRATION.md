@@ -10,7 +10,41 @@ version does. Every breaking release comes with an entry here.
 
 The SDK now follows the Poli Page API contract v1.2.0, the same retry policy,
 error predicates and messages as every other Poli Page SDK. No method or
-option is renamed; error handling is where code may need a change.
+option is renamed. Code may need a change where it relied on the renaming
+of `data` / `metadata` keys, and in error handling.
+
+### Payload keys are no longer renamed
+
+The SDK specification says `metadata` is sent as is and returned unchanged,
+and `data` is the template's own data. The SDK used to camelize every key of
+both on the way out and snake_case (and symbolize) every key of `metadata` on
+the way back. It no longer touches them; only its own names (`project:`,
+`template:`, `doc.page_count`, …) keep their Ruby spelling.
+
+- **`data:`** — write the keys your template uses. If it reads
+  `invoiceNumber` and you relied on the conversion, send `invoiceNumber`:
+
+  ```ruby
+  # before (converted to invoiceNumber on the wire)
+  client.render.pdf(project: "billing", template: "invoice", data: { invoice_number: "INV-001" })
+
+  # now (sent as written)
+  client.render.pdf(project: "billing", template: "invoice", data: { invoiceNumber: "INV-001" })
+  ```
+
+- **`metadata:`** — sent as written too; send the keys you want stored.
+  Reads use the API's String keys:
+
+  ```ruby
+  # before
+  doc.metadata[:customer_id]
+
+  # now
+  doc.metadata["customerId"]
+  ```
+
+  Documents rendered before the upgrade keep the keys they were stored with
+  (camelCase, since the old SDK converted them).
 
 ### Codes that are no longer retried
 

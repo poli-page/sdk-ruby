@@ -38,7 +38,7 @@ You can supply your own key via the `idempotency_key:` keyword on the render cal
 pdf = client.render.pdf(
   project:         "billing",
   template:        "invoice",
-  data:            { invoice_number: "INV-001" },
+  data:            { invoiceNumber: "INV-001" },
   idempotency_key: "invoice-INV-001-v1"
 )
 ```
@@ -59,7 +59,7 @@ client = PoliPage::Client.new(
 pdf = client.render.pdf(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 }
+  data:     { invoiceNumber: "INV-001", total: 1280 }
 )
 ```
 

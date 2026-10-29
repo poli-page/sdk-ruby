@@ -84,12 +84,13 @@ module PoliPage
     alias to_s inspect
 
     # Execute a POST request against `path` with `body` (snake_case hash;
-    # caller's responsibility to compact nils). Returns the parsed
+    # caller's responsibility to compact nils). The SDK's field names are
+    # camelized; the values of `data` and `metadata` are sent as given. Returns the parsed
     # snake_case-symbol-keyed Hash on 2xx, or raises a `PoliPage::Error`.
     #
     # @api private
     def execute_post(path, body:, idempotency_key: nil)
-      wire_body = JSON.generate(Internal::Wire.to_wire(body))
+      wire_body = JSON.generate(Internal::Wire.to_wire(body, Internal::Wire::PAYLOAD_KEYS))
       response = run_with_retry(method: :post, path: path, body: wire_body,
                                 idempotency_key: idempotency_key || Internal::UUID.generate)
       parse_json_response(response)
@@ -221,7 +222,7 @@ module PoliPage
 
     def parse_json_response(response)
       parsed = JSON.parse(response.body)
-      Internal::Wire.from_wire(parsed)
+      Internal::Wire.from_wire(parsed, Internal::Wire::PAYLOAD_KEYS)
     rescue JSON::ParserError => e
       raise PoliPage::InternalError.new("response body was not valid JSON: #{e.message}", status: response.status)
     end

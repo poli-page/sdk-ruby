@@ -17,7 +17,7 @@ begin
   pdf = client.render.pdf(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001" }
+    data:     { invoiceNumber: "INV-001" }
   )
 rescue PoliPage::TimeoutError => e
   warn "request timed out after #{e.timeout}s"
@@ -35,7 +35,7 @@ worker = Thread.new do
   client.render.pdf(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001" }
+    data:     { invoiceNumber: "INV-001" }
   )
 end
 
@@ -64,7 +64,7 @@ begin
   pdf = client.render.pdf(
     project:  "billing",
     template: "invoice",
-    data:     { invoice_number: "INV-001" }
+    data:     { invoiceNumber: "INV-001" }
   )
 rescue PoliPage::TimeoutError
   warn "render did not complete in time"

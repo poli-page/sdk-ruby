@@ -11,7 +11,7 @@ Every render method (`render.pdf`, `render.pdf_stream`, `render.document`, and t
 pdf = client.render.pdf(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 }
+  data:     { invoiceNumber: "INV-001", total: 1280 }
 )
 ```
 
@@ -22,10 +22,12 @@ There is no version to pick: the API renders the project's copy published in the
 - `format:` — one of `PoliPage::PageFormat::FORMATS` (e.g. `"A4"`, `"Letter"`).
 - `orientation:` — `"portrait"` or `"landscape"`.
 - `locale:` — a BCP 47 tag (e.g. `"en-US"`).
-- `metadata:` — your own primitive-valued audit data, echoed on the `DocumentDescriptor`.
+- `metadata:` — your own primitive-valued audit data, sent as is and echoed unchanged on the `DocumentDescriptor` (with the API's string keys: `doc.metadata["customerId"]`).
 - `idempotency_key:` — overrides the auto-generated `Idempotency-Key` header.
 
 Unset optional keywords are left out of the request, so the API's defaults apply.
+
+The SDK renames only its own keywords for the wire. The keys inside `data:` and `metadata:` are yours and are sent exactly as you write them: `data: { invoiceNumber: "INV-001" }` reaches the template as `invoiceNumber`, `data: { invoice_number: "INV-001" }` as `invoice_number`.
 
 ## Previews and inline HTML
 
@@ -41,10 +43,10 @@ client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
 invoice_pdf = client.render.pdf(
   project:     "billing",
   template:    "invoice",
-  data:        { invoice_number: "INV-001", total: 1280 },
+  data:        { invoiceNumber: "INV-001", total: 1280 },
   format:      "A4",
   orientation: "portrait",
-  metadata:    { customer_id: "cust_123" }
+  metadata:    { customerId: "cust_123" }
 )
 ```
 

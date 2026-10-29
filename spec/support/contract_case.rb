@@ -173,12 +173,10 @@ module PoliPageContract
       { "sha256" => Digest::SHA256.hexdigest(data), "length" => data.bytesize }
     end
 
-    # N-DESCRIPTOR. `metadata` goes back through the SDK's own key translation
-    # (`Wire.to_wire`, the inverse of the `from_wire` it applied), so a key
-    # that does not survive the round trip shows in the diff.
+    # N-DESCRIPTOR: the §7.1 fields under their wire names, values as the
+    # SDK returns them (`metadata` included: it must come back unchanged).
     def descriptor(value)
-      fields = DESCRIPTOR_FIELDS.transform_values { |reader| value.public_send(reader) }
-      fields.merge("metadata" => PoliPage::Internal::Wire.to_wire(value.metadata))
+      DESCRIPTOR_FIELDS.transform_values { |reader| value.public_send(reader) }
     end
 
     # N-PREVIEW.

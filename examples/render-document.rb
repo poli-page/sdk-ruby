@@ -10,8 +10,8 @@ client = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY"))
 doc = client.render.document(
   project:  "billing",
   template: "invoice",
-  data:     { invoice_number: "INV-001", total: 1280 },
-  metadata: { customer_id: "cust_123" }
+  data:     { invoiceNumber: "INV-001", total: 1280 },
+  metadata: { customerId: "cust_123" }
 )
 
 # `doc.document_id` is the stored document's identifier — use it with
