@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "socket"
+
 require_relative "../../support/mock_http_server"
 
 # The client's `timeout` bounds each whole attempt, body included, and an
@@ -45,6 +47,71 @@ RSpec.describe PoliPage::Internal::Transport do
           sleep(every)
           socket.write(" ")
         end
+      end
+    end
+
+    # A bare TCP server whose connections `handler` serves, for the phases
+    # before any HTTP request (TLS handshake, a proxy's CONNECT).
+    def with_raw_server(handler)
+      server = TCPServer.new("127.0.0.1", 0)
+      threads = []
+      acceptor = Thread.new do
+        loop { threads << Thread.new(server.accept) { |socket| serve_raw(socket, handler) } }
+      rescue IOError, SystemCallError
+        nil
+      end
+      yield server.addr[1]
+    ensure
+      server&.close
+      acceptor&.join(5)
+      threads&.each { |thread| thread.join(5) }
+    end
+
+    def serve_raw(socket, handler)
+      handler.call(socket)
+    rescue IOError, SystemCallError
+      nil
+    ensure
+      socket.close
+    end
+
+    def timed_error
+      error = nil
+      took = elapsed do
+        yield
+      rescue PoliPage::Error => e
+        error = e
+      end
+      [error, took]
+    end
+
+    it "bounds a TLS handshake that never completes by the attempt's timeout" do
+      # The server reads the ClientHello and never answers it.
+      with_raw_server(lambda(&:read)) do |port|
+        client = PoliPage::Client.new(api_key: "pp_sandbox_test", base_url: "https://127.0.0.1:#{port}",
+                                      max_retries: 0, timeout: 0.2)
+        error, took = timed_error { client.documents.get("doc_abc123") }
+        expect(error).to be_a(PoliPage::TimeoutError)
+        expect(error.message).to eq("Request timed out after 200ms")
+        expect(took).to be < 1.5
+      end
+    end
+
+    it "bounds the whole connection phase, a proxy CONNECT that drips its answer included" do
+      drip_connect = lambda do |socket|
+        nil until socket.gets("\r\n") == "\r\n" # the CONNECT request
+        "HTTP/1.1 200 Connection established\r\n\r\n".each_char do |char|
+          sleep(0.1)
+          socket.write(char)
+        end
+      end
+      with_raw_server(drip_connect) do |port|
+        client = PoliPage::Client.new(api_key: "pp_sandbox_test", base_url: "https://api.example.test",
+                                      proxy: "http://127.0.0.1:#{port}", max_retries: 0, timeout: 0.3)
+        error, took = timed_error { client.documents.get("doc_abc123") }
+        expect(error).to be_a(PoliPage::TimeoutError)
+        expect(error.message).to eq("Request timed out after 300ms")
+        expect(took).to be < 1.5
       end
     end
 

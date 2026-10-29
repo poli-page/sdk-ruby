@@ -9,7 +9,7 @@ description: Per-client options for timeouts, retries, proxies, and observabilit
 
 - `api_key:` (required) — an API key of one environment of your organization (`pp_{env}_…`, see [Authentication](../authentication/)).
 - `base_url:` — override the API endpoint. Defaults to `https://api.poli.page`.
-- `timeout:` — per-attempt timeout in seconds, from the connection to the last byte of the answer. Defaults to `60`. Each retry gets its own `timeout`.
+- `timeout:` — per-attempt timeout in seconds. One deadline covers the whole attempt: opening the connection (DNS, TCP, a proxy's `CONNECT`, the TLS handshake), sending the request and reading the answer to its last byte. Defaults to `60`. Each retry gets its own `timeout`.
 - `max_retries:` — maximum retry attempts for retryable errors. Defaults to `2` (three total attempts).
 - `retry_delay:` — initial retry backoff in seconds. Defaults to `0.5`. Doubles each attempt.
 - `logger:` — a `Logger` instance; hook failures are logged here.

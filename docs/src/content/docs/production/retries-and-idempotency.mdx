@@ -12,7 +12,7 @@ The Poli Page Ruby SDK retries transient failures automatically. POST requests c
 - Up to `max_retries` retries (default `2` — three total attempts); when they are exhausted, the last error is raised.
 - Before retry `n`, the SDK waits `retry_delay × 2^(n−1) × j` seconds (`retry_delay` defaults to `0.5`), `j` uniform in `[0.5, 1.5)`. The wait is never shorter than that: a `sleep` that returns early sleeps again for the rest.
 - A `Retry-After` header (integer seconds or an HTTP-date) sets the wait instead, without jitter, clamped to 0–30 s. `Retry-After-Ms` is ignored.
-- `timeout:` bounds each attempt, from the connection to the last byte of the body.
+- `timeout:` is one deadline per attempt, covering the connection (DNS, TCP, a proxy's `CONNECT`, TLS), the request and the whole answer, body included.
 - `Net::HTTP` never sends a request a second time by itself: every resend is one of the SDK's counted retries, reported to `on_request` and `on_retry`.
 
 ## Disabling retries

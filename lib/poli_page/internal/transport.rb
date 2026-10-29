@@ -2,6 +2,7 @@
 
 require "net/http"
 require "openssl"
+require "timeout"
 require "uri"
 require "zlib"
 
@@ -19,10 +20,11 @@ module PoliPage
     # Each attempt opens its own connection and reads the whole answer, body
     # included, inside its `timeout`:
     #
-    # - `open_timeout`, `read_timeout` and `write_timeout` are set to it, and a
-    #   {Watchdog} closes the connection when the attempt's deadline passes, so
-    #   a server that drips its headers or body byte by byte cannot keep the
-    #   attempt alive past `timeout`.
+    # - Opening the connection (DNS, TCP, a proxy's CONNECT, TLS) is bounded
+    #   by the time left, then a {Watchdog} closes the connection when the
+    #   attempt's deadline passes, so a server that drips its headers or body
+    #   byte by byte cannot keep the attempt alive past `timeout`.
+    #   `open_timeout`, `read_timeout` and `write_timeout` are set to it too.
     # - `max_retries` is 0: `Net::HTTP` would otherwise send a GET or DELETE a
     #   second time by itself after a read error or a timeout, an attempt the
     #   SDK neither counts nor reports. Every resend is the SDK's own retry.
@@ -123,7 +125,8 @@ module PoliPage
 
       def perform(uri, request, attempt)
         http = self.class.build_http(uri, timeout: @timeout, proxy: @proxy, ca_file: @ca_file, ca_path: @ca_path)
-        http.start do
+        open_connection(http, attempt)
+        begin
           response = within_deadline(http, attempt) do
             http.request(request) do |res|
               attempt[:head] = res
@@ -131,21 +134,37 @@ module PoliPage
             end
           end
           build_response(response)
+        ensure
+          http.finish if http.started?
         end
+      end
+
+      # Opens the connection (DNS and TCP, a proxy's CONNECT, the TLS
+      # handshake) within what is left of the attempt's timeout. `Net::HTTP`
+      # bounds each of those phases on its own, each with the full
+      # `open_timeout` or `read_timeout`; the whole is bounded here the way
+      # `Net::HTTP` bounds its TCP open, with `Timeout.timeout` raising
+      # `Net::OpenTimeout`. No caller code runs inside it.
+      def open_connection(http, attempt)
+        Timeout.timeout(time_left(attempt), Net::OpenTimeout) { http.start }
       end
 
       # Runs the request under a {Watchdog} armed with what is left of the
       # attempt's timeout once the connection is open.
       def within_deadline(http, attempt, &)
-        left = attempt[:deadline] - HTTP.monotonic_now
-        raise Net::OpenTimeout, "no time left after connecting" unless left.positive?
-
-        watchdog = attempt[:watchdog] = Watchdog.new(left) { http.finish }
+        watchdog = attempt[:watchdog] = Watchdog.new(time_left(attempt)) { http.finish }
         begin
           yield
         ensure
           watchdog.disarm
         end
+      end
+
+      def time_left(attempt)
+        left = attempt[:deadline] - HTTP.monotonic_now
+        raise Net::OpenTimeout, "the attempt's timeout has passed" unless left.positive?
+
+        left
       end
 
       def network_error?(error)
