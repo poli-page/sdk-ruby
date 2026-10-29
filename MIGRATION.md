@@ -6,6 +6,57 @@ This file documents breaking changes between releases of `poli-page`
 0.x, a breaking change bumps the minor version; from 1.0 on, only a major
 version does. Every breaking release comes with an entry here.
 
+## From 0.10.0 to the next release (Unreleased)
+
+The SDK now follows the Poli Page API contract v1.2.0, the same retry policy,
+error predicates and messages as every other Poli Page SDK. No method or
+option is renamed; error handling is where code may need a change.
+
+### Codes that are no longer retried
+
+`QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` (429) and `STORAGE_ACCESS_DENIED`
+(502) reach you after the first attempt, and `retryable?` is `false` for
+them. `DOWNLOAD_FAILED` is never `retryable?`, whatever the storage status.
+If you requeued on `retryable?`, these no longer requeue: surface the quota
+and the bucket errors instead.
+
+```ruby
+rescue PoliPage::Error => e
+  case e.code
+  when "QUOTA_EXCEEDED", "OVERAGE_CAP_EXCEEDED" then show_banner("Monthly quota reached.")
+  when "STORAGE_ACCESS_DENIED"                  then alert_ops("Bucket access revoked.")
+  else raise unless e.retryable?
+  end
+end
+```
+
+### Predicates read `status` and `code`
+
+`auth_error?` (401/403), `rate_limit_error?` (429), `validation_error?` (400)
+and `network_error?` (`network_error`/`timeout`) no longer look at the class.
+The answer only changes for `PoliPage::DownloadError`: a storage 403 (an
+expired presigned URL) is now `auth_error?`. Rescuing by class works as
+before.
+
+### Messages
+
+Matching on an SDK error's message needs updating; prefer `code`:
+
+| Error | Before | Now |
+| --- | --- | --- |
+| `InvalidOptionsError` (no key) | `api_key is required` | `apiKey is required` |
+| `ConnectionError` | the HTTP library's text | `Network request failed` (`cause` keeps the original) |
+| `TimeoutError` | `request timed out after 60s` | `Request timed out after 60000ms` |
+| `DownloadError` (status) | `Failed to download: 403 Forbidden` | `Failed to download PDF: HTTP 403` |
+| `DownloadError` (no answer) | the HTTP library's text | `Failed to download PDF: network error` |
+| non-JSON error body | `HTTP 502: response body was not valid JSON` | `HTTP 502` |
+
+### `project:` nil or empty
+
+`render.*` and `render_to_file` raise `InvalidOptionsError` with code
+`PROJECT_REQUIRED_FOR_DOCUMENT` before any request, instead of sending the
+render and getting a `ValidationError` from the API.
+
 ## From 0.9.x to 0.10.0
 
 0.10.0 follows the environments contract: an API key belongs to exactly one

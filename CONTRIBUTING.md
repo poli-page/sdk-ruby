@@ -36,6 +36,27 @@ Run all of the above before pushing — `scripts/install-hooks.sh` writes a
 ./scripts/install-hooks.sh
 ```
 
+## API contract tests
+
+`spec/contract` checks the SDK against the
+[Poli Page API contract](https://github.com/poli-page/api-contract): every
+`sdk` case runs against a local mock server over real sockets, and compares
+the requests, the `on_request` / `on_retry` events and the result with the
+case. CI runs them against the contract version pinned in
+`.github/workflows/ci.yml`; Dependabot proposes each new version as a PR. To
+run them locally, download that version's `contract.json` and point
+`POLI_CONTRACT` at it:
+
+```bash
+curl -fsSLo /tmp/contract.json \
+  https://raw.githubusercontent.com/poli-page/api-contract/<pinned sha>/contract.json
+POLI_CONTRACT=/tmp/contract.json bundle exec rspec
+```
+
+Without `POLI_CONTRACT` the suite is pending locally and fails in CI.
+`spec/contract-skip.json` lists the case ids allowed to fail, each with its
+reason; a listed case that passes fails the run until it is removed.
+
 ## Integration tests
 
 Integration tests hit the live API. They're skipped by default; opt in

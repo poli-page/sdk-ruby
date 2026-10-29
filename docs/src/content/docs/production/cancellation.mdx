@@ -48,7 +48,7 @@ The underlying `Net::HTTP` connection is closed when the thread exits; in-flight
 
 ## Cancellation vs timeout
 
-`timeout:` is enforced internally by the SDK on every HTTP call. Caller-driven interruption via threads always wins on or before the SDK timeout, since the thread can be killed at any time.
+`timeout:` is enforced internally by the SDK on every attempt, body included: an answer that keeps trickling in is cut at the deadline. Caller-driven interruption via threads always wins on or before the SDK timeout, since the thread can be killed at any time.
 
 ## Example
 

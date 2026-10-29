@@ -7,7 +7,7 @@ The SDK exposes two optional callable hooks on the constructor: `on_retry:` and 
 
 ## The hooks
 
-- `on_retry:` — fires before a retry attempt. The argument is a `PoliPage::RetryEvent` with `#attempt` (1-based), `#delay` (seconds), and `#reason` (the `PoliPage::Error` that triggered the retry).
+- `on_retry:` — fires before a retry attempt. The argument is a `PoliPage::RetryEvent` with `#attempt` (the attempt about to start: 2 for the first retry), `#delay_ms` (milliseconds), and `#reason` (the `PoliPage::Error` that triggered the retry).
 - `on_error:` — fires once when a request fails terminally (after retries are exhausted). The argument is the `PoliPage::Error` about to be raised.
 
 Both hooks are fire-and-forget. The SDK does not let them mutate request behavior; an exception raised inside a hook is rescued and logged.

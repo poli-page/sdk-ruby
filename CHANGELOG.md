@@ -10,6 +10,124 @@ Breaking releases (minor bumps while on 0.x) are summarized in
 
 ## [Unreleased]
 
+Conformance with the Poli Page API contract v1.2.0
+([poli-page/api-contract](https://github.com/poli-page/api-contract)). See
+[MIGRATION.md](MIGRATION.md#from-0100-to-the-next-release-unreleased).
+
+### Changed
+
+- **BREAKING**: `QUOTA_EXCEEDED` and `OVERAGE_CAP_EXCEEDED` (429) and
+  `STORAGE_ACCESS_DENIED` (502) are no longer retried, even with a
+  `Retry-After` header, and `retryable?` returns `false` for them (it
+  returned `true` for any 429 or 5xx). They last until the monthly reset or
+  until the bucket access is restored, so the SDK used to wait up to 30 s per
+  retry for nothing. `RATE_LIMIT_EXCEEDED` and every other 429 and 5xx are
+  still retried. Code that requeues on `retryable?` stops requeueing these
+  three.
+- **BREAKING**: `retryable?` is `false` for every `DOWNLOAD_FAILED`
+  (`PoliPage::DownloadError`), whatever the storage status: it was `true`
+  with a storage 5xx or 429. The SDK never retried the download itself, and
+  still does not.
+- **BREAKING**: the error predicates read `status` and `code`, as the SDK
+  specification defines them, instead of the error class: `auth_error?` is
+  `status` 401 or 403, `rate_limit_error?` 429, `validation_error?` 400, and
+  `network_error?` is `code` `network_error` or `timeout`. For API errors
+  only the never-retried codes above change. A `DownloadError` now follows
+  the storage's status: a 401 or 403 is an auth error (an expired presigned
+  URL gets 403), a 429 a rate-limit error and a 400 a validation error; all
+  three were `false` before.
+- **BREAKING**: SDK error messages are the exact texts of the SDK
+  specification, the same in every Poli Page SDK:
+  - `invalid_options`: `apiKey is required` (was `api_key is required`).
+  - `network_error` (`ConnectionError`): `Network request failed` (was the
+    HTTP library's exception text, which stays available as `cause`).
+  - `timeout` (`TimeoutError`): `Request timed out after <ms>ms`, the
+    client's `timeout` in milliseconds (was `request timed out after <s>s`).
+    `TimeoutError#timeout` is still in seconds.
+  - `DOWNLOAD_FAILED`: `Failed to download PDF: HTTP <status>` (was
+    `Failed to download: <status> <reason phrase>`), and
+    `Failed to download PDF: network error` when the download gets no
+    complete answer (was the HTTP library's text, now `cause`).
+  - An error answer whose body is not JSON: `HTTP <status>` (was
+    `HTTP <status>: response body was not valid JSON`); the code is still
+    `INTERNAL_ERROR` with the real status.
+  - `DownloadError.new` takes `status:` and `cause:` and builds its message
+    from them; `message:` is optional. `ConnectionError.new`'s `message:` is
+    optional too.
+- `render.document`, `render.pdf`, `render.pdf_stream` and `render_to_file`
+  raise `PoliPage::InvalidOptionsError` with code
+  `PROJECT_REQUIRED_FOR_DOCUMENT` and message `project is required` before
+  any request when `project:` is nil or empty (it was sent, and the API
+  answered `400`).
+- `Retry-After` is read as integer seconds or an HTTP-date (IMF-fixdate,
+  RFC 850 or asctime) only, clamped to 0–30 s; a date's delay keeps its
+  sub-second rest instead of being rounded down to whole seconds. Any other
+  value (`1.5`, `-1`, `soon`) falls back to the backoff. `Retry-After-Ms` is
+  ignored, as before.
+- The client's `timeout` bounds each whole attempt, body included. Before,
+  it applied to each socket operation, so an answer that kept sending a byte
+  now and then could outlive it. A per-attempt watchdog thread now closes the
+  connection at the deadline.
+- An answer's whole body is read inside its attempt. A 2xx cut mid-body is a
+  `network_error` (`Network request failed`, the read error as `cause`), and
+  one that stalls past `timeout` a `timeout`; both are retried. A 2xx body
+  shorter than its `Content-Length` used to be accepted, then failed as
+  `INTERNAL_ERROR` ("response body was not valid JSON"). A render whose 2xx
+  answer is cut was already stored by the API, so its retry can store a
+  second document.
+- An error answer whose body fails while it is read is handled as a body
+  that is not JSON: `INTERNAL_ERROR`, `HTTP <status>`, the real status and
+  `x-request-id`, the read error as `cause`, and retried by its status (a 503
+  yes, a 400 no). It never takes a code from the bytes received so far.
+- `on_response` fires once the 2xx body is read, and never for a 2xx whose
+  body failed.
+- `PoliPage::Error#initialize` takes `cause:`; `Error#cause` returns it even
+  when the error is raised outside the `rescue` that caught the original.
+  Network errors, timeouts and download failures carry the HTTP library's
+  exception there.
+- `documents.preview` returns its HTML as a UTF-8 string (it was binary,
+  `ASCII-8BIT`, so any non-ASCII character compared unequal to a UTF-8
+  string).
+- `documents.thumbnails` ignores thumbnail fields the SDK does not know,
+  instead of raising `ArgumentError`, so the API can add fields.
+
+### Fixed
+
+- A GET or DELETE (`documents.get`, `documents.preview`, `documents.delete`)
+  and the presigned-URL download are never sent again behind the SDK's
+  back. `Net::HTTP` resends an idempotent request once by itself
+  (`max_retries`, default 1) after a dropped connection, a read error or a
+  read timeout: that attempt was not counted by the SDK's `max_retries` nor
+  reported to `on_request`, a timed-out attempt lasted twice the `timeout`
+  its error named, and the download, which must not be retried, could be
+  fetched twice. The SDK now sets `max_retries = 0` on every connection.
+  `Net::HTTP` never resent a POST by itself.
+- A dropped connection (`EOFError`, `IOError`, `Errno::EPIPE`, …) was not
+  translated and escaped as the raw Ruby exception, outside the retry loop;
+  it is now a retried `network_error`. A dropped or timed-out download is
+  `DOWNLOAD_FAILED`.
+- A retry wait is never shorter than its delay: when `sleep` returns early,
+  the SDK sleeps again for the rest, on the monotonic clock.
+- An error raised by the caller's `pdf_stream` block (for example
+  `Errno::ENOSPC` from writing the chunk) propagates unchanged instead of
+  being wrapped.
+- Docs: the retries page no longer claims the API deduplicates on
+  `Idempotency-Key`. It does not: the key is stable across the retries of one
+  call, and a render retried after a late 5xx, a `timeout` or a
+  `network_error` can store a second document. The errors docs no longer
+  list `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` and `STORAGE_ACCESS_DENIED`
+  as retried.
+
+### Added
+
+- Known error code `TEMPLATE_UNSAFE` (400: the template, a partial or an SVG
+  asset holds an injection attempt; the message names it; not retried), next
+  to `TEMPLATE_ERROR`.
+- `spec/contract` runs every SDK case of the API contract against a local
+  mock server over real sockets; CI pins the contract by commit
+  (`poli-page/api-contract` action) and Dependabot proposes each new version.
+  Run it locally with `POLI_CONTRACT=<path to contract.json> bundle exec rspec`.
+
 ## [0.10.0] - 2026-10-27
 
 Environments contract: an API key carries its environment (`pp_{env}_…`,

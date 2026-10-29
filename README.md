@@ -220,7 +220,7 @@ through as a `Bearer` token and does not check its format.
 | `base_url:`   | `String`                   | `"https://api.poli.page"`  | API base URL                                 |
 | `max_retries:`| `Integer`                  | `2`                        | Max retry attempts on retryable errors       |
 | `retry_delay:`| `Numeric` (seconds)        | `0.5`                      | Base delay before the first retry            |
-| `timeout:`    | `Numeric` (seconds)        | `60`                       | Per-request timeout                          |
+| `timeout:`    | `Numeric` (seconds)        | `60`                       | Per-attempt timeout, body included           |
 | `logger:`     | `Logger` (any duck type)   | `nil`                      | Hook errors and DEBUG events here            |
 | `on_retry:`   | `#call(PoliPage::RetryEvent)`| `nil`                    | Called when a retry is scheduled             |
 | `on_error:`   | `#call(PoliPage::Error)`   | `nil`                      | Called when a call terminates in error       |
@@ -257,7 +257,10 @@ end
 ```
 
 Predicate helpers on the base class are kept for callers who prefer a
-single `rescue PoliPage::Error => e` clause:
+single `rescue PoliPage::Error => e` clause. They read `status` and `code`
+(`auth_error?` is 401/403, `rate_limit_error?` 429, `validation_error?` 400,
+`network_error?` `network_error`/`timeout`), so a `DownloadError` with a
+storage 403 is an `auth_error?`:
 
 ```ruby
 rescue PoliPage::Error => e
@@ -331,13 +334,19 @@ render. The injected `logger:` works with any `Logger`-compatible object
 
 ## Retries & idempotency
 
-The SDK retries on **5xx**, **429**, **network errors**, and **timeouts**.
+The SDK retries on **5xx**, **429**, **network errors**, and **timeouts**,
+except `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` and `STORAGE_ACCESS_DENIED`,
+which wait cannot fix. The presigned-URL download is never retried.
 Backoff is exponential (`retry_delay * 2**(attempt - 1)`) with jitter in
-`[0.5, 1.5)`, capped by `Retry-After` when the server provides it
-(integer seconds or HTTP-date; capped at 30 s).
+`[0.5, 1.5)`, replaced by `Retry-After` when the server provides it
+(integer seconds or HTTP-date; clamped to 0–30 s). `timeout:` bounds each
+attempt, body included, and every resend is one of these counted retries:
+`Net::HTTP` never sends a request again on its own.
 
-Every POST sends an auto-generated `Idempotency-Key` (UUID v4); pass
-`idempotency_key:` to override.
+Every POST sends an auto-generated `Idempotency-Key` (UUID v4), the same on
+every retry of one call; pass `idempotency_key:` to override. The API does
+not deduplicate on it: a render retried after a late 5xx, a `timeout` or a
+`network_error` can store a second document.
 
 ```ruby
 client.render.pdf(project: "billing", template: "invoice",
@@ -357,8 +366,9 @@ For Sorbet users: `.rbi` shipping is a post-1.0 enhancement.
 ## Concurrency & thread-safety
 
 A single `PoliPage::Client` instance is safe to share across threads.
-Configuration is immutable after `#initialize`; each request opens its
-own `Net::HTTP` connection.
+Configuration is immutable after `#initialize`; each attempt opens its
+own `Net::HTTP` connection (no pool or cache to size), plus a short-lived
+thread that enforces `timeout:`.
 
 ```ruby
 CLIENT = PoliPage::Client.new(api_key: ENV.fetch("POLI_PAGE_API_KEY")).freeze
