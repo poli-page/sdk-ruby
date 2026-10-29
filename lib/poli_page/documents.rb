@@ -47,7 +47,9 @@ module PoliPage
         response = @client.execute_get_raw("#{path_for(id)}/preview")
         page_count_header = response.headers[Internal::Constants::HEADER_DOCUMENT_PAGE_COUNT]
         page_count = page_count_header.to_s.match?(/\A\d+\z/) ? page_count_header.to_i : 0
-        PoliPage::DocumentPreviewResult.new(html: response.body.to_s, page_count: page_count)
+        # Net::HTTP hands the body over as binary; the API sends UTF-8 HTML.
+        html = response.body.to_s.dup.force_encoding(Encoding::UTF_8)
+        PoliPage::DocumentPreviewResult.new(html: html, page_count: page_count)
       end
 
       # POST /v1/documents/:id/thumbnails — the API expects the options nested
@@ -76,7 +78,8 @@ module PoliPage
         set = options.compact
         body = set.empty? ? {} : { thumbnails: set }
         parsed = @client.execute_post("#{path_for(id)}/thumbnails", body: body)
-        parsed[:thumbnails].map { |t| PoliPage::Thumbnail.new(**t) }
+        # Fields this SDK does not know are ignored (sdk-specification.md §10).
+        parsed[:thumbnails].map { |t| PoliPage::Thumbnail.new(**t.slice(*PoliPage::Thumbnail.members)) }
       end
 
       # DELETE /v1/documents/:id — returns nil on `204`. Idempotent: the API

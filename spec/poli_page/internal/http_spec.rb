@@ -50,6 +50,49 @@ RSpec.describe PoliPage::Internal::HTTP do
       far_future = (Time.now + (60 * 60)).httpdate
       expect(described_class.parse_retry_after(far_future)).to eq(30)
     end
+
+    it "clamps an integer too large for any fixed-width type to 30 seconds" do
+      expect(described_class.parse_retry_after("9" * 40)).to eq(30)
+    end
+
+    it "accepts only integer seconds or an HTTP-date" do
+      %w[1.5 -1 +5 soon 1e3].each do |value|
+        expect(described_class.parse_retry_after(value)).to be_nil, value
+      end
+    end
+
+    it "keeps the sub-second rest of an HTTP-date's delay" do
+      allow(Time).to receive(:now).and_return(Time.at(1_800_000_000.25))
+      expect(described_class.parse_retry_after(Time.at(1_800_000_002).httpdate)).to be_within(1e-6).of(1.75)
+    end
+
+    it "reads the RFC 850 and asctime forms of an HTTP-date" do
+      allow(Time).to receive(:now).and_return(Time.utc(1994, 11, 6, 8, 49, 30))
+      expect(described_class.parse_retry_after("Sunday, 06-Nov-94 08:49:37 GMT")).to be_within(1e-6).of(7)
+      expect(described_class.parse_retry_after("Sun Nov  6 08:49:37 1994")).to be_within(1e-6).of(7)
+    end
+  end
+
+  describe ".sleep_at_least" do
+    it "sleeps again for the rest when a sleep returns early" do
+      asked = []
+      allow(described_class).to receive(:sleep) do |seconds|
+        asked << seconds
+        Kernel.sleep(seconds / 2) # a timer that wakes early
+      end
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      described_class.sleep_at_least(0.05)
+      waited = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started
+      expect(waited).to be >= 0.05
+      expect(asked.size).to be > 1
+      expect(asked.first).to be_within(0.01).of(0.05)
+    end
+
+    it "does not sleep for a zero delay" do
+      allow(described_class).to receive(:sleep)
+      described_class.sleep_at_least(0)
+      expect(described_class).not_to have_received(:sleep)
+    end
   end
 
   describe ".compute_backoff" do
@@ -124,7 +167,7 @@ RSpec.describe PoliPage::Internal::HTTP do
 
     it "returns INTERNAL_ERROR when body is not valid JSON" do
       result = described_class.parse_error_body("not json", 502)
-      expect(result).to eq(["INTERNAL_ERROR", "HTTP 502: response body was not valid JSON"])
+      expect(result).to eq(["INTERNAL_ERROR", "HTTP 502"])
     end
 
     it "uses RFC 7807 detail as message" do

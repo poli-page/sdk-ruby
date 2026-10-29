@@ -5,8 +5,8 @@ RSpec.describe PoliPage::Client do
 
   describe ".new (constructor validation)" do
     it "requires an api_key" do
-      expect { described_class.new(api_key: nil) }.to raise_error(PoliPage::InvalidOptionsError, /api_key/)
-      expect { described_class.new(api_key: "") }.to raise_error(PoliPage::InvalidOptionsError, /api_key/)
+      expect { described_class.new(api_key: nil) }.to raise_error(PoliPage::InvalidOptionsError, "apiKey is required")
+      expect { described_class.new(api_key: "") }.to raise_error(PoliPage::InvalidOptionsError, "apiKey is required")
     end
 
     it "applies defaults from Internal::Constants" do
@@ -68,7 +68,7 @@ RSpec.describe PoliPage::Client do
   describe "retry loop (sdk-ruby-plan.md §6)" do
     let(:body) { DocumentDescriptorJSON.build }
 
-    before { allow(client).to receive(:sleep) } # don't actually sleep in tests
+    before { allow(PoliPage::Internal::HTTP).to receive(:sleep_at_least) } # don't actually sleep in tests
 
     context "with max_retries: 2 (default)" do
       subject(:client) { described_class.new(api_key: api_key) }
@@ -85,7 +85,7 @@ RSpec.describe PoliPage::Client do
           .to_return({ status: 429, body: "{}", headers: { "Retry-After" => "1" } },
                      { status: 200, body: body })
         client.render.document(project: "p", template: "t", data: {})
-        expect(client).to have_received(:sleep).with(1) # used Retry-After as-is
+        expect(PoliPage::Internal::HTTP).to have_received(:sleep_at_least).with(1) # used Retry-After as-is
       end
 
       it "retries 503 PUBLISH_IN_PROGRESS after its Retry-After, then surfaces that code" do
@@ -99,7 +99,7 @@ RSpec.describe PoliPage::Client do
             expect(e.message).to eq("publish running")
           }
         expect(stub).to have_been_requested.times(3)
-        expect(client).to have_received(:sleep).with(1).twice
+        expect(PoliPage::Internal::HTTP).to have_received(:sleep_at_least).with(1).twice
       end
 
       it "retries on PoliPage::ConnectionError" do
@@ -142,7 +142,7 @@ RSpec.describe PoliPage::Client do
     it "fires on_retry before each retry sleep, carrying a RetryEvent" do
       events = []
       client = described_class.new(api_key: api_key, on_retry: ->(e) { events << e })
-      allow(client).to receive(:sleep)
+      allow(PoliPage::Internal::HTTP).to receive(:sleep_at_least)
       stub_request(:post, "https://api.poli.page/v1/render")
         .to_return({ status: 500, body: "{}" }, { status: 200, body: body })
       client.render.document(project: "p", template: "t", data: {})

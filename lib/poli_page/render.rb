@@ -29,6 +29,7 @@ module PoliPage
       # @param metadata        [Hash, nil]   primitive-valued metadata echoed on the descriptor
       # @param idempotency_key [String, nil] caller-supplied UUID; auto-generated if nil
       # @return [PoliPage::DocumentDescriptor]
+      # @raise  [PoliPage::InvalidOptionsError] `PROJECT_REQUIRED_FOR_DOCUMENT` when `project` is nil or empty
       # @raise  [PoliPage::ValidationError] on 400
       # @raise  [PoliPage::NotFoundError]   on 404 (e.g. `TEMPLATE_NOT_FOUND`, `PROJECT_NOT_IN_ENVIRONMENT`)
       #
@@ -43,7 +44,7 @@ module PoliPage
       #   pdf = doc.download_pdf
       def document(project:, template:, data:, format: nil, orientation: nil,
                    locale: nil, metadata: nil, idempotency_key: nil)
-        validate_render_kwargs!(format: format, orientation: orientation)
+        validate_render_kwargs!(project: project, format: format, orientation: orientation)
         body = { project: project, template: template, data: data, metadata: metadata,
                  format: format, orientation: orientation, locale: locale }.compact
         parsed = @client.execute_post(Internal::Constants::PATH_RENDER,
@@ -116,7 +117,13 @@ module PoliPage
       # before issuing the HTTP request. The deployed API rejects these too,
       # but raising client-side saves a round-trip and surfaces a friendlier
       # error message (sdk-ruby-plan.md §9.1).
-      def validate_render_kwargs!(format:, orientation:)
+      def validate_render_kwargs!(project:, format:, orientation:)
+        # Ruby cannot make `project` non-nil in its signature: a missing or
+        # empty one raises before any request (sdk-specification.md §5.4).
+        if project.nil? || project.to_s.empty?
+          raise PoliPage::InvalidOptionsError.new(Internal::Constants::MESSAGE_PROJECT_REQUIRED,
+                                                  code: ErrorCodes::PROJECT_REQUIRED_FOR_DOCUMENT)
+        end
         if format && !PoliPage::PageFormat.valid?(format)
           raise PoliPage::InvalidOptionsError,
                 "invalid format: #{format.inspect}; expected one of #{PoliPage::PageFormat::FORMATS.to_a}"

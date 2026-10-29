@@ -39,24 +39,21 @@ module PoliPage
         headers
       end
 
-      # Parse a non-2xx response body into a `[code, message]` pair. Falls
-      # back to `INTERNAL_ERROR` when the body is not parseable JSON. The
-      # fallback chain (`code → message → error → 'unknown_error'`) is
-      # ported verbatim from Node `parseErrorBody` (sdk-ruby-plan.md §7.3).
+      # Parse a non-2xx response body into a `[code, message]` pair
+      # (sdk-specification.md §8.2). A body that is not a JSON object gives
+      # `INTERNAL_ERROR` / `HTTP <status>`; the caller keeps the real status.
+      # Otherwise `code` is the body's `code`, else `error`, else
+      # `unknown_error`, and `message` its `detail`, else `title`, else
+      # `message`, else `HTTP <status>`. The code is copied verbatim: it is
+      # never inferred from the status or the message.
       #
       # @param body   [String]
       # @param status [Integer]
       # @return       [Array(String, String)] `[code, message]`
       def parse_error_body(body, status)
         parsed = parse_json_or_nil(body)
-        unless parsed.is_a?(Hash)
-          return ["INTERNAL_ERROR",
-                  "HTTP #{status}: response body was not valid JSON"]
-        end
+        return ["INTERNAL_ERROR", "HTTP #{status}"] unless parsed.is_a?(Hash)
 
-        # RFC 7807: prefer `detail` (specific reason) over `title` (generic name)
-        # over the legacy `message` field; fall back to a canned status string.
-        # Code is verbatim from the API — never inferred from message.
         code = parsed.values_at("code", "error").compact.first || "unknown_error"
         message = parsed.values_at("detail", "title", "message").compact.first || "HTTP #{status}"
         [code, message]
@@ -68,33 +65,53 @@ module PoliPage
         nil
       end
 
-      # Parse the `Retry-After` response header. Accepts an integer number
-      # of seconds or an HTTP-date. Returns the delay in **seconds** (Ruby's
-      # `Kernel#sleep` and `Net::HTTP#*_timeout` units), capped at
-      # `RETRY_AFTER_CAP` (30 s). Returns `nil` when the header is missing or
-      # unparseable. Mirrors Node `parseRetryAfter` modulo unit (ms → s).
+      # Parse the `Retry-After` response header: integer seconds or an
+      # HTTP-date (IMF-fixdate, RFC 850 or asctime), nothing else. Returns the
+      # delay in **seconds** (Ruby's `Kernel#sleep` unit), clamped to
+      # 0..`RETRY_AFTER_CAP` (30 s); a date keeps its sub-second remainder and
+      # a past date gives 0. Returns `nil` when the header is missing or
+      # unparseable, so the backoff applies. `Retry-After-Ms` is never read.
       def parse_retry_after(header_value)
-        return nil if header_value.nil? || header_value.empty?
+        value = header_value.to_s.strip
+        return nil if value.empty?
 
-        return header_value.to_i.clamp(0, Constants::RETRY_AFTER_CAP) if /\A\d+\z/.match?(header_value)
+        # An Integer of any size: a huge value clamps, it never overflows.
+        return value.to_i.clamp(0, Constants::RETRY_AFTER_CAP) if /\A\d+\z/.match?(value)
 
         begin
-          target = Time.httpdate(header_value)
+          target = Time.httpdate(value)
         rescue ArgumentError
           return nil
         end
-        (target - Time.now).floor.clamp(0, Constants::RETRY_AFTER_CAP)
+        (target - Time.now).to_f.clamp(0.0, Constants::RETRY_AFTER_CAP.to_f)
       end
 
       # Compute the delay (in seconds) before the next retry attempt. When
       # `retry_after` is non-nil, it is returned as-is (server-explicit, no
-      # jitter). Otherwise: `base_delay * 2**(attempt-1) * (0.5 + rand)`.
-      # `attempt` is 1-based: 1 means the first retry.
+      # jitter). Otherwise: `base_delay * 2**(attempt-1) * j`, `j` uniform in
+      # `[0.5, 1.5)`. `attempt` is 1-based: 1 means the first retry.
       def compute_backoff(attempt:, base_delay:, retry_after: nil)
         return retry_after unless retry_after.nil?
 
         exp = base_delay * (2**(attempt - 1))
         exp * (0.5 + rand)
+      end
+
+      # Sleep `seconds`, and sleep again for the rest whenever the sleep
+      # returns early, so a retry wait is never shorter than its delay
+      # (sdk-specification.md §9.2). Measured on the monotonic clock.
+      def sleep_at_least(seconds)
+        deadline = monotonic_now + seconds
+        loop do
+          left = deadline - monotonic_now
+          break if left <= 0
+
+          sleep(left)
+        end
+      end
+
+      def monotonic_now
+        Process.clock_gettime(Process::CLOCK_MONOTONIC)
       end
 
       # Map an API response (status + parsed code/message) to the most
@@ -104,10 +121,11 @@ module PoliPage
       # @param code       [String]
       # @param message    [String]
       # @param request_id [String, nil]
+      # @param cause      [Exception, nil]
       # @return           [PoliPage::Error]
-      def classify(status:, code:, message:, request_id:)
+      def classify(status:, code:, message:, request_id:, cause: nil)
         klass = STATUS_MAP.fetch(status, PoliPage::APIError)
-        klass.new(message, code: code, status: status, request_id: request_id)
+        klass.new(message, code: code, status: status, request_id: request_id, cause: cause)
       end
 
       STATUS_MAP = {

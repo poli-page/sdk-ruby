@@ -4,13 +4,18 @@ module PoliPage
     attr_reader status: Integer?
     attr_reader request_id: String?
 
-    def initialize: (?String? message, code: String, ?status: Integer?, ?request_id: String?) -> void
+    def initialize: (?String? message, code: String, ?status: Integer?, ?request_id: String?,
+                     ?cause: Exception?) -> void
+
+    def cause: () -> Exception?
 
     def auth_error?: () -> bool
     def rate_limit_error?: () -> bool
     def validation_error?: () -> bool
     def network_error?: () -> bool
     def retryable?: () -> bool
+    def to_payload: () -> { code: String, message: String, status: Integer?, request_id: String? }
+    def payload_status: () -> Integer?
   end
 
   class ValidationError < Error
@@ -39,19 +44,17 @@ module PoliPage
   end
 
   class ConnectionError < Error
-    attr_reader cause: Exception?
-
-    def initialize: (message: String, ?cause: Exception?) -> void
+    def initialize: (?message: String, ?cause: Exception?) -> void
   end
 
   class TimeoutError < Error
     attr_reader timeout: Numeric
 
-    def initialize: (timeout: Numeric) -> void
+    def initialize: (timeout: Numeric, ?cause: Exception?) -> void
   end
 
   class DownloadError < Error
-    def initialize: (message: String, ?status: Integer?) -> void
+    def initialize: (?status: Integer?, ?cause: Exception?, ?message: String?) -> void
   end
 
   class InternalError < Error
@@ -71,6 +74,7 @@ module PoliPage
     MISSING_TEMPLATE_SLUG: String
     PROJECT_REQUIRED_FOR_DOCUMENT: String
     TEMPLATE_ERROR: String
+    TEMPLATE_UNSAFE: String
     EMPTY_DOCUMENT: String
     ENVIRONMENT_MISMATCH: String
     NOT_FOUND: String

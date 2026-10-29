@@ -134,6 +134,31 @@ RSpec.describe PoliPage::Resources::Render do
       expect { client.render.document(project: "p", template: "t", data: {}) }
         .to raise_error(PoliPage::RateLimitError)
     end
+
+    it "raises PROJECT_REQUIRED_FOR_DOCUMENT before any request when project is nil or empty" do
+      stub = stub_request(:post, "https://api.poli.page/v1/render")
+      [nil, ""].each do |project|
+        expect { client.render.document(project: project, template: "t", data: {}) }
+          .to raise_error(PoliPage::InvalidOptionsError, "project is required") { |e|
+            expect([e.code, e.status]).to eq(["PROJECT_REQUIRED_FOR_DOCUMENT", nil])
+          }
+      end
+      expect(stub).not_to have_been_requested
+    end
+  end
+
+  describe "codes never retried (sdk-specification.md §9.1)" do
+    let(:client) { PoliPage::Client.new(api_key: "pp_sandbox_abc", max_retries: 2) }
+
+    { "QUOTA_EXCEEDED" => 429, "OVERAGE_CAP_EXCEEDED" => 429, "STORAGE_ACCESS_DENIED" => 502 }.each do |code, status|
+      it "does not retry #{status} #{code}, even with a Retry-After" do
+        stub = stub_request(:post, "https://api.poli.page/v1/render")
+               .to_return(status: status, body: %({"error":"#{code}"}), headers: { "Retry-After" => "1" })
+        expect { client.render.document(project: "p", template: "t", data: {}) }
+          .to raise_error(PoliPage::Error) { |e| expect([e.code, e.retryable?]).to eq([code, false]) }
+        expect(stub).to have_been_requested.once
+      end
+    end
   end
 
   describe "#pdf" do

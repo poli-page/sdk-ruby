@@ -48,6 +48,52 @@ RSpec.describe PoliPage::Error do
     end
   end
 
+  describe "#retryable? for the codes the SDK never retries (sdk-specification.md §9.1)" do
+    it "is false for QUOTA_EXCEEDED, OVERAGE_CAP_EXCEEDED (429) and STORAGE_ACCESS_DENIED (502)" do
+      expect(PoliPage::RateLimitError.new("m", code: "QUOTA_EXCEEDED", status: 429).retryable?).to be false
+      expect(PoliPage::RateLimitError.new("m", code: "OVERAGE_CAP_EXCEEDED", status: 429).retryable?).to be false
+      expect(PoliPage::APIError.new("m", code: "STORAGE_ACCESS_DENIED", status: 502).retryable?).to be false
+      expect(PoliPage::RateLimitError.new("m", code: "RATE_LIMIT_EXCEEDED", status: 429).retryable?).to be true
+    end
+
+    it "is false for DOWNLOAD_FAILED whatever the storage status" do
+      [503, 500, 429, 403, nil].each do |status|
+        expect(PoliPage::DownloadError.new(status: status).retryable?).to be(false), "storage status #{status.inspect}"
+      end
+    end
+  end
+
+  describe "predicates read status and code, not the class (sdk-specification.md §8.1)" do
+    it "classes a DOWNLOAD_FAILED by its storage status" do
+      expect(PoliPage::DownloadError.new(status: 403).auth_error?).to be true
+      expect(PoliPage::DownloadError.new(status: 429).rate_limit_error?).to be true
+      expect(PoliPage::DownloadError.new(status: 400).validation_error?).to be true
+      expect(PoliPage::DownloadError.new.network_error?).to be false
+    end
+
+    it "classes an API error by its status, whatever the subclass" do
+      expect(PoliPage::APIError.new("m", code: "X", status: 401).auth_error?).to be true
+      expect(PoliPage::APIError.new("m", code: "X", status: 400).validation_error?).to be true
+      expect(PoliPage::InvalidOptionsError.new("m").validation_error?).to be false
+    end
+  end
+
+  describe "SDK messages (sdk-specification.md §8.3)" do
+    it "uses the exact texts of the specification" do
+      expect(PoliPage::ConnectionError.new.message).to eq("Network request failed")
+      expect(PoliPage::TimeoutError.new(timeout: 0.15).message).to eq("Request timed out after 150ms")
+      expect(PoliPage::TimeoutError.new(timeout: 60).message).to eq("Request timed out after 60000ms")
+      expect(PoliPage::DownloadError.new(status: 403).message).to eq("Failed to download PDF: HTTP 403")
+      expect(PoliPage::DownloadError.new.message).to eq("Failed to download PDF: network error")
+    end
+
+    it "keeps the cause it was given, even when raised outside a rescue" do
+      original = Net::ReadTimeout.new
+      err = PoliPage::TimeoutError.new(timeout: 1, cause: original)
+      expect { raise err }.to raise_error(err) { |e| expect(e.cause).to be(original) }
+    end
+  end
+
   describe "field preservation" do
     it "preserves message, code, status, request_id" do
       err = PoliPage::APIError.new("boom", code: "INTERNAL_ERROR", status: 500, request_id: "req_abc")
@@ -81,7 +127,7 @@ RSpec.describe PoliPage::Error do
       expect(err.code).to eq("timeout")
       expect(err.status).to be_nil
       expect(err.timeout).to eq(30)
-      expect(err.message).to include("30")
+      expect(err.message).to eq("Request timed out after 30000ms")
     end
 
     it "DownloadError carries code 'DOWNLOAD_FAILED' and may have an S3 status" do
@@ -130,7 +176,7 @@ RSpec.describe PoliPage::Error do
 end
 
 RSpec.describe PoliPage::ErrorCodes do
-  it "exposes the 31 known API codes of the environments contract" do
+  it "exposes the 32 known API codes" do
     expected = %w[
       MISSING_API_KEY INVALID_API_KEY ORGANIZATION_CANCELLED ORGANIZATION_PURGED
       FORBIDDEN VALIDATION_ERROR MISSING_DATA MISSING_TEMPLATE_SLUG
@@ -139,7 +185,7 @@ RSpec.describe PoliPage::ErrorCodes do
       PUBLISH_IN_PROGRESS ENVIRONMENT_MISMATCH PROJECT_NOT_IN_ENVIRONMENT
       TEMPLATE_NOT_FOUND DOCUMENT_GONE ENVIRONMENT_PROTECTED ORGANIZATION_PAYMENT_GRACE
       EMPTY_DOCUMENT STORAGE_ACCESS_DENIED ORGANIZATION_MIGRATING PROJECT_NOT_FOUND
-      TEMPLATE_ERROR THUMBNAILS_NOT_AVAILABLE RATE_LIMIT_EXCEEDED RENDER_BODY_TOO_LARGE
+      TEMPLATE_ERROR TEMPLATE_UNSAFE THUMBNAILS_NOT_AVAILABLE RATE_LIMIT_EXCEEDED RENDER_BODY_TOO_LARGE
       DOCUMENT_TOO_LARGE RENDER_TIMEOUT
     ]
     expected.each do |name|
