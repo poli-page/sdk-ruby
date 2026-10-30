@@ -65,7 +65,7 @@ RSpec.describe PoliPage::Client do
     end
   end
 
-  describe "retry loop (sdk-ruby-plan.md §6)" do
+  describe "retry loop" do
     let(:body) { DocumentDescriptorJSON.build }
 
     before { allow(PoliPage::Internal::HTTP).to receive(:sleep_at_least) } # don't actually sleep in tests
@@ -136,7 +136,7 @@ RSpec.describe PoliPage::Client do
     end
   end
 
-  describe "hooks (sdk-ruby-plan.md §10.2)" do
+  describe "hooks" do
     let(:body) { DocumentDescriptorJSON.build }
 
     it "fires on_retry before each retry sleep, carrying a RetryEvent" do

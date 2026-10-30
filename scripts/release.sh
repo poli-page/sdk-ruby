@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # release.sh — primary publishing path for `poli-page`.
 #
-# Per sdk-ruby-plan.md §12.5 / §16.3. Maintainer-driven: prompts for
+# Maintainer-driven: prompts for
 # confirmation before `gem push`, then pushes the tag *after* publish
 # succeeds (so we never tag an unpublished commit).
 #

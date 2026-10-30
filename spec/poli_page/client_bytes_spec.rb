@@ -3,7 +3,7 @@
 # Phase 3 additions to PoliPage::Client: `fetch_bytes(url)` and
 # `stream_bytes(url) { |chunk| ... }` — both used by DocumentDescriptor
 # and the streaming render methods. The presigned URL is fetched
-# unauthenticated, with NO SDK retry policy (sdk-ruby-plan.md §5.5).
+# unauthenticated, with NO SDK retry policy.
 
 RSpec.describe PoliPage::Client do
   let(:client) { described_class.new(api_key: "pp_sandbox_abc", max_retries: 0) }

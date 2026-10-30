@@ -7,15 +7,14 @@ on:
     branches: [main]
   schedule:
     # Weekly, Monday 06:17 UTC — staggered off-the-hour to dodge
-    # GH Actions scheduler peaks (per sdk-ruby-plan.md §16.6).
+    # GH Actions scheduler peaks.
     - cron: "17 6 * * 1"
 
 permissions:
   contents: read
   security-events: write
 
-# All third-party Actions pinned to 40-char commit SHAs per
-# sdk-ruby-plan.md §16.6.
+# All third-party Actions pinned to 40-char commit SHAs.
 
 jobs:
   analyze:

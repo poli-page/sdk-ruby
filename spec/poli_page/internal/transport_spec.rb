@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Per sdk-ruby-plan.md §3.2 and §8. The transport is the only module that
+# The transport is the only module that
 # opens sockets; tests use WebMock to intercept at the Net::HTTP layer.
 
 RSpec.describe PoliPage::Internal::Transport do

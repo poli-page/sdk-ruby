@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Per sdk-ruby-plan.md §5.4 and §3.1 spec/internal/wire_spec.rb.
+# Wire-format key translation specs.
 # Snake_case Hash keys ↔ camelCase Hash keys, recursive.
 
 RSpec.describe PoliPage::Internal::Wire do

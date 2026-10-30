@@ -20,8 +20,7 @@ on:
 permissions:
   contents: read
 
-# All third-party Actions pinned to 40-char commit SHAs per
-# sdk-ruby-plan.md §16.6.
+# All third-party Actions pinned to 40-char commit SHAs.
 
 jobs:
   integration:

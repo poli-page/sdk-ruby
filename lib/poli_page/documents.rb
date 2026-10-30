@@ -8,7 +8,7 @@ require_relative "models/thumbnail"
 
 module PoliPage
   module Resources
-    # `client.documents` namespace (sdk-ruby-plan.md §13 Phase 4, port of
+    # `client.documents` namespace (port of
     # sdk-node/src/documents.ts).
     class Documents
       def initialize(client)
