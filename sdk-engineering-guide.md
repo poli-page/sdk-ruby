@@ -415,10 +415,14 @@ There MUST NOT be a CI workflow that publishes on `git push --tags` or on `relea
 | Python       | `twine upload dist/*`           | `python -m build`            | PyPI Trusted Publisher                        |
 | PHP          | `composer` auto-publishes via Packagist webhook on tag | n/a            | n/a                                            |
 | Go           | tag push triggers proxy fetch   | `go list -m`                 | `goreleaser` SLSA provenance                   |
-| Ruby         | `gem push *.gem`                | `gem build *.gemspec`        | RubyGems MFA + signed gems (optional)         |
+| Ruby         | tag push → `release.yml` (Trusted Publishing; see 6.6) | `gem build *.gemspec`        | RubyGems MFA + signed gems (optional)         |
 | Rust         | `cargo publish`                 | `cargo package`              | crates.io built-in checksums                   |
 | Java/Kotlin  | `mvn deploy` / `gradle publish` | `mvn package`                | GPG-signed artifacts to OSSRH                  |
 | .NET (C#)    | `dotnet nuget push`             | `dotnet pack`                | NuGet Repository Signature                     |
+
+### 6.6 Ruby deviation: the workflow is the publisher
+
+The Ruby SDK intentionally departs from 6.1 and 6.3. Publishing happens only in `.github/workflows/release.yml`, which runs on a pushed `vX.Y.Z` tag, re-runs the gates, and pushes to RubyGems via Trusted Publishing (OIDC, no API key) behind the `rubygems-release` environment, whose required reviewer is the manual gate that 6.4 asks for. `scripts/release.sh` therefore never runs `gem push`: it does the pre-flight (on `main`, HEAD equals `origin/main`, clean tree, CHANGELOG section present, tag unused), the local verify, the build and pack inspection, then creates and pushes the tag on confirmation. Do not reintroduce a local `gem push`; it would publish the same version twice.
 
 ---
 

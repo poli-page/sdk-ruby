@@ -79,7 +79,14 @@ INTEGRATION=1 bundle exec rspec spec/integration
 
 ## Releasing
 
-See `scripts/release.sh`. Releases are gated
-on `main`, a clean tree, and the full local CI suite. The maintainer runs
-the script, confirms at the prompt, and the tag is pushed only **after**
-`gem push` succeeds.
+The release workflow (`.github/workflows/release.yml`) is the only thing
+that publishes: it runs on a pushed `vX.Y.Z` tag, re-runs the gates, then
+waits for a reviewer to approve the `rubygems-release` environment before
+pushing to RubyGems via Trusted Publishing. No RubyGems credentials are
+needed locally.
+
+`scripts/release.sh` is the maintainer's local pre-flight: it requires
+`main`, a clean tree and an unused tag, runs the full local CI suite and
+builds the gem, then, after you confirm, creates and pushes the tag, which
+starts the workflow. It never runs `gem push`. Use `--dry-run` to run
+everything except the tag push.
