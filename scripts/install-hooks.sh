@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # install-hooks.sh — wire .git/hooks/pre-push to run the local CI gates
-# before every push (sdk-ruby-plan.md §16.4). Idempotent: re-run safely.
+# before every push. Idempotent: re-run safely.
 #
 #   - RuboCop
 #   - RBS validate

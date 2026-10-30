@@ -10,7 +10,7 @@ module PoliPage
     # @api private
     #
     # Pure transport helpers — no I/O, no socket access. Mirrors
-    # `sdk-node/src/internal/http.ts` (sdk-ruby-plan.md §13 Phase 1).
+    # `sdk-node/src/internal/http.ts`.
     module HTTP
       module_function
 
@@ -115,7 +115,7 @@ module PoliPage
       end
 
       # Map an API response (status + parsed code/message) to the most
-      # specific `PoliPage::Error` subclass (sdk-ruby-plan.md §7).
+      # specific `PoliPage::Error` subclass.
       #
       # @param status     [Integer]
       # @param code       [String]

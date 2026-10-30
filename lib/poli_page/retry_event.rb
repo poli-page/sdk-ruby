@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module PoliPage
-  # Event payload for the `on_retry` constructor hook (sdk-ruby-plan.md §10.2).
+  # Event payload for the `on_retry` constructor hook.
   #
   # - `attempt`  [Integer]         1-based — the attempt about to be made.
   # - `delay_ms` [Integer]         sleep duration in milliseconds before this

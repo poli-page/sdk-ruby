@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 # Ports sdk-node/tests/node.test.ts. Client#render_to_file streams the PDF
-# bytes from `render.pdf_stream` straight to disk (sdk-ruby-plan.md §11).
+# bytes from `render.pdf_stream` straight to disk.
 
 require "fileutils"
 require "pathname"

@@ -2,7 +2,6 @@ version: 2
 
 # Mirrors the Node SDK setup. Bundler is weekly to keep PR volume low; dev
 # deps are grouped so a single bundler bump shows up as one PR.
-# See sdk-ruby-plan.md §16.6.
 
 updates:
   - package-ecosystem: bundler

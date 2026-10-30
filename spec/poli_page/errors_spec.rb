@@ -3,7 +3,7 @@
 # Ported from sdk-node/tests/error.test.ts. The Node SDK uses a single
 # `PoliPageError` class with predicate methods; the Ruby SDK splits the
 # error space into a class hierarchy (rescue-friendly) but keeps the
-# predicates on the base for spec parity (sdk-ruby-plan.md §7.1).
+# predicates on the base for spec parity.
 
 RSpec.describe PoliPage::Error do
   describe "#auth_error?" do
@@ -107,7 +107,7 @@ RSpec.describe PoliPage::Error do
     end
   end
 
-  describe "SDK-internal error subclasses (sdk-ruby-plan.md §7.2)" do
+  describe "SDK-internal error subclasses" do
     it "InvalidOptionsError carries code 'invalid_options' and nil status" do
       err = PoliPage::InvalidOptionsError.new("api_key is required")
       expect(err.code).to eq("invalid_options")

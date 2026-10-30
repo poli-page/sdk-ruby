@@ -77,7 +77,7 @@ module PoliPage
 
     # Redacted `#inspect`. Ruby's default would dump `@api_key` into any
     # `puts client` or exception backtrace — that's how secrets end up in
-    # logs (sdk-ruby-plan.md §10.1 redaction rule).
+    # logs.
     def inspect
       "#<PoliPage::Client base_url=#{@base_url.inspect} timeout=#{@timeout} max_retries=#{@max_retries}>"
     end

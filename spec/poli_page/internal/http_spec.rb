@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-# Ported 1:1 from sdk-node/tests/internal/http.test.ts (sdk-ruby-plan.md §13
-# Phase 1). Note: the Ruby SDK works in seconds (matching `Kernel#sleep` and
+# Ported 1:1 from sdk-node/tests/internal/http.test.ts.
+# Note: the Ruby SDK works in seconds (matching `Kernel#sleep` and
 # `Net::HTTP#*_timeout`), whereas the Node SDK uses milliseconds — values
 # adapted accordingly. The cap is 30 s (vs Node's 30_000 ms). Behavior parity
 # is preserved.

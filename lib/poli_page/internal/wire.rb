@@ -5,7 +5,7 @@ module PoliPage
     # @api private
     #
     # snake_case ↔ camelCase translator for the SDK's own field names
-    # (sdk-ruby-plan.md §5.4, sdk-specification.md §2). Pure, no runtime
+    # (sdk-specification.md §2). Pure, no runtime
     # dependency on metaprogramming DSLs. Outgoing: hash keys are stringified
     # and camelized. Incoming: hash keys are snake_cased and symbolized.
     #

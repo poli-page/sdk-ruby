@@ -79,7 +79,7 @@ INTEGRATION=1 bundle exec rspec spec/integration
 
 ## Releasing
 
-See `scripts/release.sh` and `sdk-ruby-plan.md` §16.3. Releases are gated
+See `scripts/release.sh`. Releases are gated
 on `main`, a clean tree, and the full local CI suite. The maintainer runs
 the script, confirms at the prompt, and the tag is pushed only **after**
 `gem push` succeeds.

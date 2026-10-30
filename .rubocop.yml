@@ -21,7 +21,7 @@ Style/Documentation:
 
 # Double-quoted strings are the dominant convention in modern Ruby SDKs
 # (anthropic-sdk-ruby, stripe-ruby, openai-ruby) and match every code example
-# in sdk-ruby-plan.md. Cheap, no interpolation cost.
+# in this repo. Cheap, no interpolation cost.
 Style/StringLiterals:
   EnforcedStyle: double_quotes
 
@@ -113,7 +113,7 @@ RSpec/SubjectStub:
     - "spec/poli_page/client_get_delete_spec.rb"
 
 # Public SDK methods deliberately take many keyword arguments — every render
-# input field is its own kwarg by spec design (sdk-ruby-plan.md §9.1). The
+# input field is its own kwarg by spec design. The
 # default cap of 5 is too low; raise to 13 (Client#initialize hits this with
 # its 13 distinct configuration kwargs), and exempt optional kwargs.
 Metrics/ParameterLists:

@@ -5,8 +5,7 @@ require_relative "models/document_descriptor"
 module PoliPage
   module Resources
     # `client.render` namespace. Each method captures a back-reference to the
-    # parent `PoliPage::Client` and delegates HTTP execution through it
-    # (sdk-ruby-plan.md §3.1).
+    # parent `PoliPage::Client` and delegates HTTP execution through it.
     class Render
       def initialize(client)
         @client = client

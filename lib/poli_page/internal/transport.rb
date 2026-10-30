@@ -14,7 +14,7 @@ module PoliPage
     # @api private
     #
     # Thin wrapper around `Net::HTTP`. The ONLY module that opens sockets to
-    # the API (sdk-ruby-plan.md §3.2). Translates network-level exceptions into
+    # the API. Translates network-level exceptions into
     # the `PoliPage::Error` hierarchy at the seam (§8 error mapping).
     #
     # Each attempt opens its own connection and reads the whole answer, body

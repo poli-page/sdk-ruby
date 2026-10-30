@@ -12,9 +12,8 @@ permissions:
   # short-lived OIDC token instead of relying on a CODECOV_TOKEN secret.
   id-token: write
 
-# All third-party Actions pinned to 40-char commit SHAs per
-# sdk-ruby-plan.md §16.6 (supply-chain hardening). The trailing comment
-# is the human-readable tag; bump SHA + tag together via Dependabot.
+# All third-party Actions pinned to 40-char commit SHAs (supply-chain hardening).
+# The trailing comment is the human-readable tag; bump SHA + tag together via Dependabot.
 
 jobs:
   test:
@@ -84,7 +83,7 @@ jobs:
         run: gem build poli-page.gemspec
 
       - name: Consumer install smoke
-        # Mirrors the Node SDK's install-smoke step (sdk-ruby-plan.md §16.1).
+        # Mirrors the Node SDK's install-smoke step.
         # Installs the built .gem into an isolated location and requires it
         # from a fresh process to catch packaging regressions.
         shell: bash
@@ -101,7 +100,7 @@ jobs:
     # and isolating it makes the failure cause obvious. Configured with
     # `--severity-level=error` so internal-namespace untyped calls (Steep
     # surfaces these as `warning`) don't fail the build — only actionable
-    # type errors do (sdk-ruby-plan.md §9.3).
+    # type errors do.
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0

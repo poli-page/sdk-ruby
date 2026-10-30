@@ -6,7 +6,7 @@ module PoliPage
   # SDK-attached `_client` back-reference used by `#download_pdf`.
   #
   # The `_client` field is hidden from `#to_h` and `#inspect` so it doesn't
-  # leak into logs or marshalled representations (sdk-ruby-plan.md §3.4).
+  # leak into logs or marshalled representations.
   DocumentDescriptor = Data.define(
     :document_id,
     :organization_id,
