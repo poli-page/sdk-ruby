@@ -5,9 +5,9 @@ description: Upgrade guides for moving between breaking releases of the Ruby SDK
 
 This page tracks breaking changes between releases of the `poli-page` gem. While the gem is on 0.x, a breaking change bumps the minor version. For the full per-release diff, see the [changelog](../changelog/).
 
-## From 0.10.0 to the next release
+## From 0.10.0 to 0.11.0
 
-The SDK follows the Poli Page API contract v1.3.0. The full guide is in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md#from-0100-to-the-next-release-unreleased).
+The SDK follows the Poli Page API contract v1.3.0. The full guide is in [`MIGRATION.md` in the repo](https://github.com/poli-page/sdk-ruby/blob/main/MIGRATION.md#from-0100-to-0110).
 
 - The keys inside `data:` and `metadata:` are sent exactly as written (no more camelizing), and `doc.metadata` comes back as stored, with String keys (`doc.metadata["customerId"]`, not `doc.metadata[:customer_id]`). Send the keys your template and your metadata readers expect.
 - `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED` and `STORAGE_ACCESS_DENIED` are no longer retried, and `retryable?` is `false` for them. `DOWNLOAD_FAILED` is never `retryable?`.

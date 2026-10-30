@@ -6,7 +6,7 @@ This file documents breaking changes between releases of `poli-page`
 0.x, a breaking change bumps the minor version; from 1.0 on, only a major
 version does. Every breaking release comes with an entry here.
 
-## From 0.10.0 to the next release (Unreleased)
+## From 0.10.0 to 0.11.0
 
 The SDK now follows the Poli Page API contract v1.3.0, the same retry policy,
 error predicates and messages as every other Poli Page SDK. No method or
