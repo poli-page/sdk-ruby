@@ -81,8 +81,10 @@ updates. Older minors do not receive backports — please upgrade.
   is pinned to a 40-character SHA, not a floating tag.
 - **Dependabot** — weekly updates for `bundler` and `github-actions`.
 - **MFA-required publishing** — the gemspec declares
-  `rubygems_mfa_required: "true"`; the per-gem RubyGems API key is
-  scoped to `poli-page` only.
+  `rubygems_mfa_required: "true"`. Releases are published by the tag-triggered
+  release workflow via RubyGems Trusted Publishing (OIDC), behind the
+  `rubygems-release` environment's required-reviewer approval; no RubyGems
+  API key is stored anywhere.
 - **Restricted workflow permissions** — every workflow declares the
   minimum `permissions:` block (most are `contents: read`).
 

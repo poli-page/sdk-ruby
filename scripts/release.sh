@@ -13,6 +13,8 @@
 # Pre-flight:
 #   - working tree clean
 #   - on `main`
+#   - HEAD is exactly `origin/main` (nothing unpushed, nothing behind)
+#   - CHANGELOG.md has a `## [X.Y.Z]` section for the version
 #   - target tag does not yet exist locally or on `origin`
 #
 # Verify (gates the release on local CI):
@@ -79,6 +81,15 @@ ok "on main"
 
 [[ -z "$(git status --porcelain)" ]] || fail "working tree not clean — commit or stash first"
 ok "working tree clean"
+
+git fetch --quiet origin main || fail "could not fetch origin/main"
+[[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] \
+  || fail "HEAD is not origin/main — push or pull first (the tag would publish this commit)"
+ok "HEAD is origin/main"
+
+grep -q "^## \[${VERSION}\]" CHANGELOG.md \
+  || fail "CHANGELOG.md has no '## [${VERSION}]' section — move [Unreleased] first"
+ok "CHANGELOG has a ${VERSION} section"
 
 if git rev-parse --verify "refs/tags/${TAG}" >/dev/null 2>&1; then
   fail "tag ${TAG} already exists locally — bump VERSION first"
@@ -147,7 +158,7 @@ total_size_kb="$(du -sk "$unpacked_root" | awk '{print $1}')"
 echo "Total size: ${c_bold}${total_size_kb} KB${c_reset}"
 rm -rf "$inspect_dir"
 
-# ─ publish ───────────────────────────────────────────────────────────────
+# ─ tag ───────────────────────────────────────────────────────────────────
 echo
 if [[ "$DRY_RUN" -eq 1 ]]; then
   say "${c_yellow}Dry run complete${c_reset} — skipping the tag push"
@@ -163,7 +174,7 @@ read -r -p "${c_bold}Confirm tag push? [y/N]${c_reset} " reply
 [[ "$reply" == "y" || "$reply" == "Y" ]] || { echo "aborted"; rm -f "$GEM_FILE"; exit 1; }
 
 say "Tagging ${TAG}"
-git tag "$TAG"
+git tag -a "$TAG" -m "poli-page ${VERSION}"
 git push origin "$TAG"
 
 echo
