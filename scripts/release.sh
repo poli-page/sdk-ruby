@@ -1,15 +1,19 @@
 #!/usr/bin/env bash
-# release.sh — primary publishing path for `poli-page`.
+# release.sh — local pre-flight and tag push for `poli-page`.
 #
-# Maintainer-driven: prompts for
-# confirmation before `gem push`, then pushes the tag *after* publish
-# succeeds (so we never tag an unpublished commit).
+# This script does NOT publish the gem. Publishing is done by
+# .github/workflows/release.yml, which runs on the pushed `vX.Y.Z` tag and
+# pushes to RubyGems via Trusted Publishing, behind the `rubygems-release`
+# environment's required-reviewer approval. No RubyGems credentials are
+# needed (or used) here.
+#
+# Maintainer-driven: runs the checks below, prompts for confirmation, then
+# creates and pushes the tag, which starts the workflow.
 #
 # Pre-flight:
 #   - working tree clean
 #   - on `main`
 #   - target tag does not yet exist locally or on `origin`
-#   - ~/.gem/credentials present (gem push will use it)
 #
 # Verify (gates the release on local CI):
 #   - bundle config set --local frozen true && bundle install
@@ -25,12 +29,12 @@
 # Pack inspect:
 #   - gem unpack the built gem into a temp dir and show contents + size
 #
-# Publish (on confirmation):
-#   - gem push poli-page-X.Y.Z.gem
+# Tag (on confirmation):
 #   - git tag vX.Y.Z && git push origin vX.Y.Z
+#   - the release workflow then publishes after reviewer approval
 #
 # Flags:
-#   --dry-run   Run everything except `gem push` and the tag push.
+#   --dry-run   Run everything except the tag push.
 #   --skip-demo Skip the examples/demo.rb smoke (useful in CI-like contexts).
 
 set -euo pipefail
@@ -64,7 +68,7 @@ TAG="v${VERSION}"
 GEM_FILE="poli-page-${VERSION}.gem"
 
 say "Releasing ${c_bold}poli-page ${VERSION}${c_reset} (tag: ${TAG})"
-[[ "$DRY_RUN" -eq 1 ]] && note "DRY RUN — will skip gem push and tag push"
+[[ "$DRY_RUN" -eq 1 ]] && note "DRY RUN — will skip the tag push"
 echo
 
 # ─ pre-flight ────────────────────────────────────────────────────────────
@@ -83,10 +87,6 @@ if git ls-remote --tags origin 2>/dev/null | grep -qE "refs/tags/${TAG}\$"; then
   fail "tag ${TAG} already exists on origin"
 fi
 ok "tag ${TAG} does not yet exist"
-
-if [[ "$DRY_RUN" -eq 0 ]] && [[ ! -f "$HOME/.gem/credentials" ]]; then
-  fail "~/.gem/credentials missing — gem push will fail. Run 'gem signin' first."
-fi
 
 # ─ API contract ──────────────────────────────────────────────────────────
 # The contract version CI pins (poli-page/api-contract action in
@@ -150,29 +150,27 @@ rm -rf "$inspect_dir"
 # ─ publish ───────────────────────────────────────────────────────────────
 echo
 if [[ "$DRY_RUN" -eq 1 ]]; then
-  say "${c_yellow}Dry run complete${c_reset} — skipping gem push and tag push"
+  say "${c_yellow}Dry run complete${c_reset} — skipping the tag push"
   rm -f "$GEM_FILE"
   exit 0
 fi
 
-say "About to publish"
-echo "    gem push ${GEM_FILE}"
+say "About to tag"
 echo "    git tag ${TAG} && git push origin ${TAG}"
+echo "    (the release workflow publishes after reviewer approval)"
 echo
-read -r -p "${c_bold}Confirm publish? [y/N]${c_reset} " reply
+read -r -p "${c_bold}Confirm tag push? [y/N]${c_reset} " reply
 [[ "$reply" == "y" || "$reply" == "Y" ]] || { echo "aborted"; rm -f "$GEM_FILE"; exit 1; }
-
-say "gem push ${GEM_FILE}"
-gem push "$GEM_FILE"
 
 say "Tagging ${TAG}"
 git tag "$TAG"
 git push origin "$TAG"
 
 echo
-ok "${c_bold}Released ${VERSION}${c_reset}"
-note "rubygems: https://rubygems.org/gems/poli-page/versions/${VERSION}"
-note "rubydoc:  https://rubydoc.info/gems/poli-page/${VERSION}  (builds within ~5 min)"
-note "github:   https://github.com/poli-page/sdk-ruby/releases/tag/${TAG}  (optional: gh release create)"
+ok "${c_bold}Pushed ${TAG}${c_reset}"
+note "next: approve the \`rubygems-release\` deployment in the Actions run to publish"
+note "run:      https://github.com/poli-page/sdk-ruby/actions/workflows/release.yml"
+note "rubygems: https://rubygems.org/gems/poli-page/versions/${VERSION}  (after approval)"
+note "rubydoc:  https://rubydoc.info/gems/poli-page/${VERSION}  (builds within ~5 min of publish)"
 
 rm -f "$GEM_FILE"
