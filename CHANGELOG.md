@@ -10,6 +10,72 @@ Breaking releases (minor bumps while on 0.x) are summarized in
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-02
+
+Conformance with the Poli Page API contract v0.13.0
+([poli-page/api-contract](https://github.com/poli-page/api-contract)). The
+SDK now shares its major.minor with the Poli Page API, so it moves from 0.11
+to 0.13. See [MIGRATION.md](MIGRATION.md#from-0110-to-0130).
+
+### Added
+
+- `invalid_response`: a 2xx answer whose body is not JSON, from a method that
+  expects JSON (the API call of `render.document`, `render.pdf` and
+  `render.pdf_stream`, `documents.get`, `documents.thumbnails`), raises
+  `PoliPage::InvalidResponseError` with the code `invalid_response`, the
+  message `Invalid response: HTTP <status> body is not JSON`, the real 2xx as
+  `status`, the answer's `x-request-id` as `request_id`, and the JSON
+  parser's error as `cause`. It is never retried, `retryable?` is `false`,
+  and `on_error` fires with it. Such a body usually comes from a proxy or a
+  captive portal between the SDK and the API.
+- `io_error`: `render_to_file` raises `PoliPage::FileWriteError` when it
+  cannot write the file (creating a parent directory, opening, writing or
+  moving it into place). No status, the message
+  `Failed to write PDF: <reason>` with Ruby's own error text, that error as
+  `cause`, never retried.
+- `to_payload` answers `status` 502 for `invalid_response`. The error's own
+  `status` keeps the real 2xx.
+- `scripts/release.sh` and the release workflow check that the API contract
+  pinned for the tests has the release's major.minor (see
+  [RELEASING.md](RELEASING.md)).
+
+### Changed
+
+- **BREAKING**: `Error#to_payload` returns exactly the String keys `"code"`,
+  `"message"`, `"status"` and `"requestId"`, the keys every Poli Page SDK
+  uses, so every framework integration answers the same JSON body. It
+  returned the Symbol keys `:code`, `:message`, `:status` and `:request_id`:
+  read `payload["requestId"]` instead of `payload[:request_id]`.
+- **BREAKING**: a 2xx whose body is not JSON (an empty body included) was
+  `PoliPage::InternalError` (`INTERNAL_ERROR`,
+  `response body was not valid JSON: …`); it is now `invalid_response`
+  (above). A 2xx JSON value that is not an object stays `INTERNAL_ERROR`.
+- **BREAKING**: `render_to_file` failures to write the file were
+  `PoliPage::InvalidOptionsError` (`invalid_options`,
+  `failed to write to <path>: …`); they are now `io_error`.
+- `render_to_file` writes to a temporary file in the target's directory and
+  renames it over the target only once the PDF is complete. When anything
+  fails (the render, the download or the write), the target is left as it
+  was: an existing file keeps its content and a missing one is not created
+  (before, a failure deleted the target). The directory and the temporary
+  file are prepared before the render, so a path that cannot be written
+  costs no render. A new file gets the usual mode (`0666` minus the umask);
+  a replaced file keeps its own.
+- The presigned-URL download is bounded by the client's `timeout:`. For
+  `render.pdf` and `download_pdf` it bounds the whole download, from the
+  connection to the last byte. For `render.pdf_stream` and `render_to_file`
+  it bounds the wait for the answer, then each wait for the next chunk (an
+  idle timeout), so a large PDF read at the caller's pace is not cut off.
+  Before, `timeout:` only bounded each socket operation of the download, so
+  a slow storage could keep `render.pdf` going well past it.
+- A download that outlasts its timeout raises `DOWNLOAD_FAILED` with the
+  message `Failed to download PDF: timeout` (was
+  `Failed to download PDF: network error`). No status, not retryable. A
+  download whose connection closes before the announced `Content-Length`
+  still raises `Failed to download PDF: network error`.
+- A `timeout:` of zero or less makes the download fail at once with the
+  timeout message, as it already made every API call time out.
+
 ## [0.11.0] - 2026-10-30
 
 Conformance with the Poli Page API contract v1.3.0

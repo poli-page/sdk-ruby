@@ -6,6 +6,78 @@ This file documents breaking changes between releases of `poli-page`
 0.x, a breaking change bumps the minor version; from 1.0 on, only a major
 version does. Every breaking release comes with an entry here.
 
+## From 0.11.0 to 0.13.0
+
+The SDK now shares its major.minor with the Poli Page API, so there is no
+0.12. This release follows the API contract v0.13.0. No method or option is
+renamed; error handling and framework integrations may need a change.
+
+### `to_payload` has String keys, `requestId` included
+
+`Error#to_payload` returns the body a framework integration answers with,
+and every Poli Page SDK now spells it the same way: exactly the String keys
+`"code"`, `"message"`, `"status"` and `"requestId"`. It used to return
+Symbol keys, with `:request_id`.
+
+```ruby
+# 0.11.0
+payload = e.to_payload
+payload[:request_id]           # => "req_..."
+render json: payload           # answered {"code":…,"request_id":"req_…"}
+
+# 0.13.0
+payload = e.to_payload
+payload["requestId"]           # => "req_..."
+render json: payload           # answers {"code":…,"requestId":"req_…"}
+```
+
+If your integration renamed `request_id` to `requestId` itself, drop the
+rename. Its `"status"` is 502 for the new `invalid_response` (below).
+
+### A 2xx whose body is not JSON is `invalid_response`
+
+It was `PoliPage::InternalError` (`INTERNAL_ERROR`,
+`response body was not valid JSON: …`). It is now
+`PoliPage::InvalidResponseError`, code `invalid_response`, message
+`Invalid response: HTTP <status> body is not JSON`, with the real 2xx as
+`status` and the answer's request id. It is not retried.
+
+```ruby
+# 0.11.0
+rescue PoliPage::InternalError => e
+  # a proxy answered instead of the API, if e.status is a 2xx
+
+# 0.13.0
+rescue PoliPage::InvalidResponseError => e
+  # a proxy answered instead of the API; e.status is its 2xx
+```
+
+### `render_to_file` raises `io_error`
+
+A file that cannot be written was `PoliPage::InvalidOptionsError`; it is now
+`PoliPage::FileWriteError`, code `io_error`, with the message
+`Failed to write PDF: <reason>` and Ruby's error as `cause`. The target is
+left untouched on any failure: it is no longer deleted when the render
+fails.
+
+```ruby
+# 0.13.0
+rescue PoliPage::FileWriteError => e
+  # disk full, permissions, a missing mount...
+  logger.error(e.cause)
+```
+
+### The PDF download is bounded by `timeout:`
+
+The presigned-URL download now uses the client's `timeout:` (60 s by
+default). `render.pdf` and `download_pdf` bound the whole download, so raise
+`timeout:` if your PDFs take longer than that to download.
+`render.pdf_stream` and `render_to_file` use it as an idle timeout, the wait
+for the answer and each gap between two chunks, and are never cut off for
+their total length. Past the timeout the error is `DOWNLOAD_FAILED` with the
+message `Failed to download PDF: timeout` (was
+`Failed to download PDF: network error`).
+
 ## From 0.10.0 to 0.11.0
 
 The SDK now follows the Poli Page API contract v1.3.0, the same retry policy,
