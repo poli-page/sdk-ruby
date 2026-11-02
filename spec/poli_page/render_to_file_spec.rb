@@ -118,6 +118,24 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
     end
   end
 
+  it "keeps the original error, and removes the temporary file, when closing it fails too" do
+    allow(Tempfile).to receive(:create).and_wrap_original do |create, *args, **kwargs|
+      create.call(*args, **kwargs).tap do |file|
+        allow(file).to receive(:write).and_raise(Errno::ENOSPC, "while writing the PDF")
+        allow(file).to receive(:close).and_wrap_original do |close|
+          close.call
+          raise IOError, "close failed"
+        end
+      end
+    end
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "out.pdf")
+      expect { client.render_to_file(path, project: "billing", template: "invoice", data: {}) }
+        .to raise_error(PoliPage::FileWriteError) { |e| expect(e.cause).to be_a(Errno::ENOSPC) }
+      expect(Dir.children(dir)).to be_empty
+    end
+  end
+
   it "raises io_error when the file cannot be moved into place, and creates no target" do
     allow(File).to receive(:rename).and_raise(Errno::EXDEV, "rename")
     Dir.mktmpdir do |dir|

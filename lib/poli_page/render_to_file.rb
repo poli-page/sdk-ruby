@@ -81,11 +81,15 @@ module PoliPage
       target.file? ? target.stat.mode & 0o7777 : 0o666 & ~File.umask
     end
 
+    # Removes the temporary file, if still there. A failure to close it must
+    # not hide the outcome of the call, so it is ignored.
     def discard_temp_file(temp)
-      temp.close unless temp.closed?
+      begin
+        temp.close unless temp.closed?
+      rescue *FILE_WRITE_ERRORS
+        nil
+      end
       FileUtils.rm_f(temp.path)
-    rescue *FILE_WRITE_ERRORS
-      nil # nothing more can be done; the outcome of the call stands
     end
   end
 end
