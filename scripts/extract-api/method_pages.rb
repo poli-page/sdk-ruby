@@ -20,7 +20,7 @@ module MethodPages
       example: "render-pdf.rb",
       error_classes: %w[
         ValidationError NotFoundError RateLimitError TimeoutError
-        ConnectionError DownloadError InternalError APIError
+        ConnectionError DownloadError InvalidResponseError InternalError APIError
       ]
     },
     {
@@ -30,7 +30,7 @@ module MethodPages
       example: "render-pdf-stream.rb",
       error_classes: %w[
         ValidationError NotFoundError RateLimitError TimeoutError
-        ConnectionError DownloadError InternalError APIError
+        ConnectionError DownloadError InvalidResponseError InternalError APIError
       ]
     },
     {
@@ -39,7 +39,7 @@ module MethodPages
       yard_path: "PoliPage::Resources::Render#document",
       example: "render-document.rb",
       error_classes: %w[
-        ValidationError NotFoundError RateLimitError InternalError APIError
+        ValidationError NotFoundError RateLimitError InvalidResponseError InternalError APIError
       ]
     },
     {
@@ -47,7 +47,7 @@ module MethodPages
       display: "client.documents.get",
       yard_path: "PoliPage::Resources::Documents#get",
       example: "documents-get.rb",
-      error_classes: %w[NotFoundError GoneError AuthenticationError InternalError APIError]
+      error_classes: %w[NotFoundError GoneError AuthenticationError InvalidResponseError InternalError APIError]
     },
     {
       slug: "documents-preview",
@@ -63,7 +63,7 @@ module MethodPages
       example: "documents-thumbnails.rb",
       error_classes: %w[
         NotFoundError GoneError ValidationError PermissionDeniedError AuthenticationError
-        InternalError APIError
+        InvalidResponseError InternalError APIError
       ]
     },
     {
@@ -79,8 +79,8 @@ module MethodPages
       yard_path: "PoliPage::Client#render_to_file",
       example: "render-to-file.rb",
       error_classes: %w[
-        InvalidOptionsError ValidationError NotFoundError RateLimitError
-        TimeoutError ConnectionError DownloadError InternalError APIError
+        InvalidOptionsError FileWriteError ValidationError NotFoundError RateLimitError
+        TimeoutError ConnectionError DownloadError InvalidResponseError InternalError APIError
       ]
     }
   ].freeze

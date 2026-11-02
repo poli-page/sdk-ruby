@@ -53,27 +53,33 @@ module PoliPage
 
     # A network error, a timeout, a 5xx or a 429, except the codes the SDK
     # never retries: `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED`,
-    # `STORAGE_ACCESS_DENIED`, and `DOWNLOAD_FAILED` whatever the storage
-    # status (the presigned-URL download is never retried).
+    # `STORAGE_ACCESS_DENIED`, `DOWNLOAD_FAILED` whatever the storage status
+    # (the presigned-URL download is never retried), `invalid_response` and
+    # `io_error`.
     def retryable?
-      return false if Internal::Constants::NON_RETRYABLE_CODES.include?(@code) || @code == "DOWNLOAD_FAILED"
+      return false if Internal::Constants::NON_RETRYABLE_CODES.include?(@code) ||
+                      Internal::Constants::NEVER_RETRIED_SDK_CODES.include?(@code)
       return true if network_error?
 
       !@status.nil? && (@status >= 500 || @status == 429)
     end
 
-    # Canonical wire payload for framework integrations:
-    # `{code:, message:, status:, request_id:}`. `status` surfaces 503 for
-    # connection failures, 504 for timeouts, the API HTTP status for
-    # status-bearing errors, and nil when unknown. The {#status} reader
-    # itself stays nil for transport-error instances — only the payload
-    # surfaces 503/504.
+    # The HTTP body a framework integration answers with: exactly the four
+    # String keys `"code"`, `"message"`, `"status"` and `"requestId"`, spelled
+    # the same in every Poli Page SDK so that every integration answers the
+    # same JSON. `"status"` is the API status for status-bearing errors, 503
+    # for `network_error`, 504 for `timeout`, 502 for `invalid_response`, and
+    # nil when unknown; `"requestId"` is nil when unknown. The {#status}
+    # reader itself is unchanged: nil for transport errors, the real 2xx for
+    # `invalid_response`.
+    #
+    # @return [Hash{String=>(String, Integer, nil)}]
     def to_payload
       {
-        code: @code,
-        message: message,
-        status: payload_status,
-        request_id: @request_id
+        "code" => @code,
+        "message" => message,
+        "status" => payload_status,
+        "requestId" => @request_id
       }
     end
 
@@ -144,15 +150,50 @@ module PoliPage
   # `DOWNLOAD_FAILED`: the presigned-URL download failed. With the storage's
   # `status` when it answered (`Failed to download PDF: HTTP <status>`),
   # without one when no complete answer came (`Failed to download PDF:
-  # network error`, the HTTP library's exception as {#cause}). Never retried.
+  # network error`, the HTTP library's exception as {#cause}) or when the
+  # client's `timeout` elapsed (`timeout: true`, `Failed to download PDF:
+  # timeout`). Never retried, and {#retryable?} is false whatever the status.
   class DownloadError < Error
-    def initialize(status: nil, cause: nil, message: nil)
+    def initialize(status: nil, cause: nil, message: nil, timeout: false)
       message ||= if status
                     format(Internal::Constants::MESSAGE_DOWNLOAD_FAILED, status: status)
+                  elsif timeout
+                    Internal::Constants::MESSAGE_DOWNLOAD_FAILED_TIMEOUT
                   else
                     Internal::Constants::MESSAGE_DOWNLOAD_FAILED_NETWORK
                   end
       super(message, code: "DOWNLOAD_FAILED", status: status, request_id: nil, cause: cause)
+    end
+  end
+
+  # `invalid_response`: a 2xx answer whose body is not JSON, from a method
+  # that expects JSON (the API call of `render.document`, `render.pdf` and
+  # `render.pdf_stream`, `documents.get`, `documents.thumbnails`). Such a body
+  # comes from something between the SDK and the API, such as a proxy or a
+  # captive portal. `status` is the real 2xx and `request_id` the answer's
+  # `x-request-id`; the JSON parser's error is {#cause}. Never retried.
+  # {#to_payload} answers 502: an integration must not answer an error with a
+  # 2xx.
+  class InvalidResponseError < Error
+    def initialize(status:, request_id: nil, cause: nil)
+      super(format(Internal::Constants::MESSAGE_INVALID_RESPONSE, status: status),
+            code: "invalid_response", status: status, request_id: request_id, cause: cause)
+    end
+
+    def payload_status
+      502
+    end
+  end
+
+  # `io_error`: `Client#render_to_file` could not write the file (creating a
+  # parent directory, opening, writing or moving it into place). Message
+  # `Failed to write PDF: <reason>`, `<reason>` being the Ruby error's own
+  # message; that error is {#cause}. No status, never retried. The target
+  # file is left untouched.
+  class FileWriteError < Error
+    def initialize(cause:)
+      super(format(Internal::Constants::MESSAGE_IO_ERROR, reason: cause.message),
+            code: "io_error", status: nil, request_id: nil, cause: cause)
     end
   end
 

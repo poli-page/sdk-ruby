@@ -8,11 +8,13 @@ module ErrorsPage
   module_function
 
   SDK_INTERNAL = [
-    { code: "PoliPage::InvalidOptionsError", when: "`invalid_options`: the constructor got no API key (`apiKey is required`). Also code PROJECT_REQUIRED_FOR_DOCUMENT (`project is required`) when `project:` is nil or empty, and a path `render_to_file` cannot write. Raised before any HTTP call. Not retryable." },
+    { code: "PoliPage::InvalidOptionsError", when: "`invalid_options`: the constructor got no API key (`apiKey is required`). Also code PROJECT_REQUIRED_FOR_DOCUMENT (`project is required`) when `project:` is nil or empty. Raised before any HTTP call. Not retryable." },
     { code: "PoliPage::ConnectionError",     when: "`network_error`: DNS, TCP or TLS failure, or a connection dropped before the whole answer arrived (`Network request failed`). Retryable." },
     { code: "PoliPage::TimeoutError",        when: "`timeout`: an attempt did not complete within the configured `timeout:` (`Request timed out after <ms>ms`). Retryable." },
-    { code: "PoliPage::DownloadError",       when: "`DOWNLOAD_FAILED`: the presigned-URL download failed (`Failed to download PDF: HTTP <status>`, or `Failed to download PDF: network error`). Never retried, whatever the storage status." },
-    { code: "PoliPage::InternalError",       when: "Unexpected response shape from the API (e.g., non-JSON body)." }
+    { code: "PoliPage::DownloadError",       when: "`DOWNLOAD_FAILED`: the presigned-URL download failed (`Failed to download PDF: HTTP <status>`, `Failed to download PDF: network error`, or `Failed to download PDF: timeout` when it outlasted `timeout:`). Never retried, whatever the storage status." },
+    { code: "PoliPage::InvalidResponseError", when: "`invalid_response`: a 2xx answer whose body is not JSON, usually from a proxy (`Invalid response: HTTP <status> body is not JSON`), with the real 2xx as `status`. Never retried; `to_payload` answers 502." },
+    { code: "PoliPage::FileWriteError",      when: "`io_error`: `render_to_file` could not write the file (`Failed to write PDF: <reason>`), the Ruby error as `cause`. No status, never retried; the target file is left untouched." },
+    { code: "PoliPage::InternalError",       when: "Unexpected response shape from the API (a 2xx JSON value that is not an object)." }
   ].freeze
 
   API_BY_STATUS = [

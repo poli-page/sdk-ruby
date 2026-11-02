@@ -91,9 +91,13 @@ client.render_to_file(
 )
 ```
 
-`render_to_file` streams the response bytes directly to disk via
+`render_to_file` streams the response bytes to disk via
 `render.pdf_stream` — bounded memory regardless of PDF size. Parent
-directories are created on the fly.
+directories are created on the fly. The PDF goes to a temporary file next
+to the target, renamed over it once complete, so a failed render, download
+or write leaves the target as it was. A file that cannot be written raises
+`PoliPage::FileWriteError` (code `io_error`, message
+`Failed to write PDF: <reason>`, the Ruby error as `cause`).
 
 ### Try it locally — runnable demo
 
@@ -170,7 +174,11 @@ client.documents.delete(doc.document_id)
 
 The presigned URL has a 15-minute TTL. If `download_pdf` raises
 `PoliPage::DownloadError` with `status: 403` from S3, call
-`documents.get(id)` to refresh and retry.
+`documents.get(id)` to refresh and retry. The client's `timeout:` also
+bounds the download: the whole download for `download_pdf` and
+`render.pdf`, and each wait for the next chunk for `render.pdf_stream`
+and `render_to_file`. Past it, `DownloadError` has the message
+`Failed to download PDF: timeout`.
 
 ## Authentication & environments
 
@@ -222,7 +230,7 @@ through as a `Bearer` token and does not check its format.
 | `base_url:`   | `String`                   | `"https://api.poli.page"`  | API base URL                                 |
 | `max_retries:`| `Integer`                  | `2`                        | Max retry attempts on retryable errors       |
 | `retry_delay:`| `Numeric` (seconds)        | `0.5`                      | Base delay before the first retry            |
-| `timeout:`    | `Numeric` (seconds)        | `60`                       | Per-attempt timeout, body included           |
+| `timeout:`    | `Numeric` (seconds)        | `60`                       | Per-attempt timeout, body included; also bounds the PDF download |
 | `logger:`     | `Logger` (any duck type)   | `nil`                      | Hook errors and DEBUG events here            |
 | `on_retry:`   | `#call(PoliPage::RetryEvent)`| `nil`                    | Called when a retry is scheduled             |
 | `on_error:`   | `#call(PoliPage::Error)`   | `nil`                      | Called when a call terminates in error       |
@@ -292,6 +300,25 @@ end
 
 The full list of known API codes lives in `PoliPage::ErrorCodes` (see
 `lib/poli_page/errors.rb`).
+
+A 2xx answer whose body is not JSON, which comes from something between
+your app and the API (a proxy, a captive portal), raises
+`PoliPage::InvalidResponseError` (code `invalid_response`, message
+`Invalid response: HTTP <status> body is not JSON`) with the real 2xx as
+`status`. It is not retried.
+
+For framework integrations, `e.to_payload` returns the HTTP body to answer
+with: exactly the String keys `"code"`, `"message"`, `"status"` and
+`"requestId"`, the same in every Poli Page SDK. Its `"status"` is the API
+status, 503 for `network_error`, 504 for `timeout` and 502 for
+`invalid_response`.
+
+```ruby
+rescue PoliPage::Error => e
+  payload = e.to_payload
+  render json: payload, status: payload["status"] || 500
+end
+```
 
 → Full error reference: <https://poli-page.github.io/sdk-ruby/reference/errors/>
 

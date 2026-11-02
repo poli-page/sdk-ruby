@@ -31,7 +31,10 @@ HTTP status maps to a subclass via `PoliPage::Internal::HTTP.classify`:
 - `429` → `RateLimitError`
 - other 4xx / 5xx → `APIError`
 
-The SDK-internal subclasses (`InvalidOptionsError`, `ConnectionError`, `TimeoutError`, `DownloadError`, `InternalError`) are raised before any HTTP call or in response to a network-layer failure.
+The SDK-internal subclasses (`InvalidOptionsError`, `ConnectionError`, `TimeoutError`, `DownloadError`, `InvalidResponseError`, `FileWriteError`, `InternalError`) are raised before any HTTP call, in response to a network-layer failure, or by the SDK itself:
+
+- `InvalidResponseError` (`invalid_response`): a 2xx answer whose body is not JSON, from a method that expects JSON (`render.document`, `render.pdf`, `render.pdf_stream`, `documents.get`, `documents.thumbnails`). It usually comes from a proxy or a captive portal. `status` is the real 2xx, `request_id` the answer's `x-request-id`. Never retried.
+- `FileWriteError` (`io_error`): `render_to_file` could not write the file. No status, the Ruby error as `#cause`, never retried; the target file is left untouched.
 
 ## API codes
 
@@ -62,9 +65,20 @@ The full list of API codes lives in [the reference](../../reference/errors/).
 
 ## Predicate helpers
 
-`PoliPage::Error` exposes `#auth_error?` (`status` 401 or 403), `#rate_limit_error?` (429), `#validation_error?` (400), `#network_error?` (`code` `network_error` or `timeout`), and `#retryable?` for callers who want a single rescue clause backed by introspection. They read `status` and `code`, not the class, so a `DownloadError` with a storage 403 is an `auth_error?`. `#retryable?` is true for a network error, a timeout, a 5xx or a 429, except `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED`, `STORAGE_ACCESS_DENIED` and `DOWNLOAD_FAILED`.
+`PoliPage::Error` exposes `#auth_error?` (`status` 401 or 403), `#rate_limit_error?` (429), `#validation_error?` (400), `#network_error?` (`code` `network_error` or `timeout`), and `#retryable?` for callers who want a single rescue clause backed by introspection. They read `status` and `code`, not the class, so a `DownloadError` with a storage 403 is an `auth_error?`. `#retryable?` is true for a network error, a timeout, a 5xx or a 429, except `QUOTA_EXCEEDED`, `OVERAGE_CAP_EXCEEDED`, `STORAGE_ACCESS_DENIED`, `DOWNLOAD_FAILED`, `invalid_response` and `io_error`.
 
-The SDK's own messages are fixed texts: `Network request failed`, `Request timed out after <ms>ms`, `Failed to download PDF: HTTP <status>` or `Failed to download PDF: network error`, `apiKey is required`, `project is required`, and `HTTP <status>` for an error answer whose body is not JSON. For a network error, a timeout or a failed download, `#cause` is the HTTP library's exception.
+The SDK's own messages are fixed texts: `Network request failed`, `Request timed out after <ms>ms`, `Failed to download PDF: HTTP <status>`, `Failed to download PDF: network error` or `Failed to download PDF: timeout`, `Invalid response: HTTP <status> body is not JSON`, `Failed to write PDF: <reason>`, `apiKey is required`, `project is required`, and `HTTP <status>` for an error answer whose body is not JSON. For a network error, a timeout or a failed download, `#cause` is the HTTP library's exception; for `invalid_response` the JSON parser's error; for `io_error` the file system's error.
+
+## Framework integrations: `to_payload`
+
+`Error#to_payload` returns the HTTP body an integration answers with: exactly the String keys `"code"`, `"message"`, `"status"` and `"requestId"`, spelled the same in every Poli Page SDK. `"status"` is the API status, `503` for `network_error`, `504` for `timeout`, `502` for `invalid_response` (whose own `status` stays the real 2xx), and `nil` when unknown.
+
+```ruby
+rescue PoliPage::Error => e
+  e.to_payload
+  # => { "code" => "TEMPLATE_NOT_FOUND", "message" => "...", "status" => 404, "requestId" => "req_..." }
+end
+```
 
 ## Example
 

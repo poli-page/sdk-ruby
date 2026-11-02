@@ -24,6 +24,11 @@ module PoliPage
       # the bucket access is restored.
       NON_RETRYABLE_CODES = %w[QUOTA_EXCEEDED OVERAGE_CAP_EXCEEDED STORAGE_ACCESS_DENIED].freeze
 
+      # SDK codes never retried and never `retryable?`: the presigned-URL
+      # download, a 2xx whose body is not JSON (whatever answered it will
+      # answer the same again) and a file that cannot be written.
+      NEVER_RETRIED_SDK_CODES = %w[DOWNLOAD_FAILED invalid_response io_error].freeze
+
       # SDK error messages: exact texts of sdk-specification.md §8.3, the same
       # in every SDK (the API contract's `policy.sdkErrors` compares them).
       MESSAGE_INVALID_OPTIONS         = "apiKey is required"
@@ -31,6 +36,9 @@ module PoliPage
       MESSAGE_TIMEOUT                 = "Request timed out after %<timeout_ms>dms"
       MESSAGE_DOWNLOAD_FAILED         = "Failed to download PDF: HTTP %<status>d"
       MESSAGE_DOWNLOAD_FAILED_NETWORK = "Failed to download PDF: network error"
+      MESSAGE_DOWNLOAD_FAILED_TIMEOUT = "Failed to download PDF: timeout"
+      MESSAGE_INVALID_RESPONSE        = "Invalid response: HTTP %<status>d body is not JSON"
+      MESSAGE_IO_ERROR                = "Failed to write PDF: %<reason>s"
       MESSAGE_PROJECT_REQUIRED        = "project is required"
 
       # Header names (lowercase form — Net::HTTP normalises to lowercase on

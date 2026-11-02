@@ -175,31 +175,68 @@ RSpec.describe PoliPage::Client do
     end
   end
 
-  describe "a 2xx whose body is not a JSON object" do
+  describe "a 2xx whose body is not JSON" do
     let(:errors) { [] }
     let(:client) { described_class.new(api_key: api_key, max_retries: 2, on_error: ->(e) { errors << e }) }
+    let(:request_id) { { "x-request-id" => "req_proxy" } }
 
     {
       "not JSON" => { status: 200, body: "<html>ok</html>" },
       "empty" => { status: 200, body: "" },
-      "absent (204)" => { status: 204 },
-      "a JSON array" => { status: 200, body: "[]" }
+      "absent (204)" => { status: 204 }
     }.each do |label, answer|
-      it "raises INTERNAL_ERROR through on_error, without retrying, when it is #{label}" do
-        stub = stub_request(:get, "https://api.poli.page/v1/documents/doc_abc").to_return(answer)
+      it "raises invalid_response through on_error, without retrying, when it is #{label}" do
+        stub = stub_request(:get, "https://api.poli.page/v1/documents/doc_abc")
+               .to_return(answer.merge(headers: request_id))
         expect { client.documents.get("doc_abc") }
-          .to raise_error(PoliPage::InternalError, /response body was not/) { |e|
-            expect([e.code, e.status, e.retryable?]).to eq(["INTERNAL_ERROR", answer[:status], false])
+          .to raise_error(PoliPage::InvalidResponseError,
+                          "Invalid response: HTTP #{answer[:status]} body is not JSON") { |e|
+            expect([e.code, e.status, e.request_id, e.retryable?])
+              .to eq(["invalid_response", answer[:status], "req_proxy", false])
           }
-        expect(errors.map(&:class)).to eq([PoliPage::InternalError])
+        expect(errors.map(&:class)).to eq([PoliPage::InvalidResponseError])
         expect(stub).to have_been_requested.once
       end
     end
 
-    it "keeps the JSON parser's error as cause" do
+    {
+      "render.document" => lambda { |c|
+        c.render.document(project: "p", template: "t", data: {})
+      },
+      "render.pdf" => ->(c) { c.render.pdf(project: "p", template: "t", data: {}) },
+      "render.pdf_stream" => ->(c) { c.render.pdf_stream(project: "p", template: "t", data: {}) { |_| nil } },
+      "documents.thumbnails" => ->(c) { c.documents.thumbnails("doc_abc") }
+    }.each do |method, call|
+      it "raises invalid_response from #{method}" do
+        stub_request(:post, %r{\Ahttps://api\.poli\.page/v1/}).to_return(status: 201, body: "<html>",
+                                                                         headers: request_id)
+        expect { call.call(client) }
+          .to raise_error(PoliPage::InvalidResponseError) { |e| expect([e.status, e.request_id]).to eq([201, "req_proxy"]) }
+      end
+    end
+
+    it "keeps the JSON parser's error as cause, and nil as request_id when the answer has none" do
       stub_request(:get, "https://api.poli.page/v1/documents/doc_abc").to_return(status: 200, body: "{")
       expect { client.documents.get("doc_abc") }
-        .to raise_error(PoliPage::InternalError) { |e| expect(e.cause).to be_a(JSON::ParserError) }
+        .to raise_error(PoliPage::InvalidResponseError) { |e|
+          expect(e.cause).to be_a(JSON::ParserError)
+          expect(e.request_id).to be_nil
+        }
+    end
+
+    it "raises INTERNAL_ERROR, without retrying, for JSON that is not an object" do
+      stub = stub_request(:get, "https://api.poli.page/v1/documents/doc_abc").to_return(status: 200, body: "[]")
+      expect { client.documents.get("doc_abc") }
+        .to raise_error(PoliPage::InternalError, "response body was not a JSON object") { |e|
+          expect([e.code, e.status, e.retryable?]).to eq(["INTERNAL_ERROR", 200, false])
+        }
+      expect(stub).to have_been_requested.once
+    end
+
+    it "does not apply to documents.preview, whose body is HTML" do
+      stub_request(:get, "https://api.poli.page/v1/documents/doc_abc/preview")
+        .to_return(status: 200, body: "<html></html>", headers: { "Content-Type" => "text/html" })
+      expect(client.documents.preview("doc_abc").html).to eq("<html></html>")
     end
   end
 

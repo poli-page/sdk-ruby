@@ -34,7 +34,7 @@ end
 
 ## Write to file (`render_to_file`)
 
-The client exposes a convenience helper that streams bytes directly to disk. Parent directories are created automatically; the partial file is removed on render error.
+The client exposes a convenience helper that streams bytes to disk. Parent directories are created automatically. The PDF is written to a temporary file next to the target and renamed over it once complete: when the render, the download or the write fails, the target is left as it was. A file that cannot be written raises `PoliPage::FileWriteError` (`io_error`, message `Failed to write PDF: <reason>`).
 
 ```ruby
 client.render_to_file(
@@ -59,6 +59,10 @@ pdf = doc.download_pdf
 ```
 
 `presigned_pdf_url` has a ~15-minute TTL. If it expires, call `client.documents.get(doc.document_id)` to refresh.
+
+## Download timeout
+
+The client's `timeout:` bounds the download of the PDF too. For `download_pdf` and `render.pdf` it bounds the whole download; for `render.pdf_stream` and `render_to_file` it bounds the wait for the answer and each wait for the next chunk, so a large PDF read at your own pace is never cut off. Past it, the call raises `PoliPage::DownloadError` with the message `Failed to download PDF: timeout`. The download is never retried.
 
 ## Example
 
