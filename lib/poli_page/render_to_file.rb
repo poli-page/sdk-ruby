@@ -16,7 +16,9 @@ module PoliPage
     # fails (the render, the download or the write), `path` is left as it
     # was: an existing file keeps its content, a missing one is not created.
     # The directory and the temporary file are prepared before the render,
-    # so a path that cannot be written costs no render.
+    # so a path that cannot be written costs no render. When `path` is a
+    # symbolic link, the PDF goes to the file it points to, and the link
+    # stays a link.
     #
     # @param path   [String, Pathname]
     # @param kwargs forwarded to `Resources::Render#pdf_stream`
@@ -34,7 +36,7 @@ module PoliPage
     #     data:     { name: "World" }
     #   )
     def render_to_file(path, **kwargs)
-      target = Pathname(path)
+      target = file_write { resolve_links(Pathname(path)) }
       temp = open_temp_file(target)
       begin
         render.pdf_stream(**kwargs) { |chunk| file_write { temp.write(chunk) } }
@@ -55,6 +57,23 @@ module PoliPage
       yield
     rescue *FILE_WRITE_ERRORS => e
       raise PoliPage::FileWriteError.new(cause: e)
+    end
+
+    # Most links the file system follows in one path (Linux's limit).
+    MAX_LINKS = 40
+    private_constant :MAX_LINKS
+
+    # The file `path` names once its symbolic links are followed, so the
+    # rename replaces that file, not the link. A link whose target does not
+    # exist yet resolves to that target, which the rename then creates.
+    def resolve_links(path)
+      MAX_LINKS.times do
+        return path unless path.symlink?
+
+        link = path.readlink
+        path = link.absolute? ? link : path.dirname + link
+      end
+      raise Errno::ELOOP, path.to_s
     end
 
     # The temporary file sits next to the target, so the final rename stays

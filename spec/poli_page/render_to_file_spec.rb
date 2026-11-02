@@ -170,6 +170,44 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
     end
   end
 
+  # Creating a symbolic link needs a privilege Windows runners lack.
+  it "writes through a symbolic link to the file it points to, the link kept", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir(File.join(dir, "real"))
+      real = File.join(dir, "real", "out.pdf")
+      File.write(real, "previous")
+      link = File.join(dir, "link.pdf")
+      File.symlink(File.join("real", "out.pdf"), link)
+      client.render_to_file(link, project: "billing", template: "invoice", data: {})
+      expect(File.symlink?(link)).to be true
+      expect(File.readlink(link)).to eq(File.join("real", "out.pdf"))
+      expect(File.binread(real)).to eq("%PDF-1.4 stub data")
+      expect(Dir.children(File.join(dir, "real"))).to eq(["out.pdf"])
+    end
+  end
+
+  it "creates the file a dangling symbolic link points to, and follows chains of links", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      real = File.join(dir, "new.pdf")
+      File.symlink(real, File.join(dir, "first.pdf"))
+      File.symlink("first.pdf", File.join(dir, "second.pdf"))
+      client.render_to_file(File.join(dir, "second.pdf"), project: "billing", template: "invoice", data: {})
+      expect(File.binread(real)).to eq("%PDF-1.4 stub data")
+      expect([File.symlink?(File.join(dir, "first.pdf")), File.symlink?(File.join(dir, "second.pdf"))])
+        .to eq([true, true])
+    end
+  end
+
+  it "raises io_error before any render for a loop of symbolic links", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      File.symlink("b.pdf", File.join(dir, "a.pdf"))
+      File.symlink("a.pdf", File.join(dir, "b.pdf"))
+      expect { client.render_to_file(File.join(dir, "a.pdf"), project: "billing", template: "invoice", data: {}) }
+        .to raise_error(PoliPage::FileWriteError) { |e| expect(e.cause).to be_a(Errno::ELOOP) }
+      expect(a_request(:post, "https://api.poli.page/v1/render")).not_to have_been_made
+    end
+  end
+
   it "gives a new file the umask's default mode and keeps an existing file's mode", skip: Gem.win_platform? do
     Dir.mktmpdir do |dir|
       fresh = File.join(dir, "new.pdf")
