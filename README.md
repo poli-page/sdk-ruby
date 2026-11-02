@@ -308,15 +308,14 @@ your app and the API (a proxy, a captive portal), raises
 `status`. It is not retried.
 
 For framework integrations, `e.to_payload` returns the HTTP body to answer
-with: exactly the String keys `"code"`, `"message"`, `"status"` and
-`"requestId"`, the same in every Poli Page SDK. Its `"status"` is the API
-status, 503 for `network_error`, 504 for `timeout` and 502 for
-`invalid_response`.
+with: exactly the keys `code:`, `message:`, `status:` and `requestId:`, the
+same JSON in every Poli Page SDK. Its `status:` is the API status, 503 for
+`network_error`, 504 for `timeout` and 502 for `invalid_response`.
 
 ```ruby
 rescue PoliPage::Error => e
   payload = e.to_payload
-  render json: payload, status: payload["status"] || 500
+  render json: payload, status: payload[:status] || 500
 end
 ```
 

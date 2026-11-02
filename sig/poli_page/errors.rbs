@@ -14,7 +14,7 @@ module PoliPage
     def validation_error?: () -> bool
     def network_error?: () -> bool
     def retryable?: () -> bool
-    def to_payload: () -> Hash[String, String | Integer | nil]
+    def to_payload: () -> { code: String, message: String, status: Integer?, requestId: String? }
     def payload_status: () -> Integer?
   end
 

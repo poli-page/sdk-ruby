@@ -145,17 +145,19 @@ RSpec.describe PoliPage::Error do
   end
 
   describe "#to_payload" do
-    it "has exactly the String keys code, message, status and requestId" do
+    it "has exactly the keys code, message, status and requestId" do
       err = PoliPage::AuthenticationError.new(
         "Forbidden", code: "authentication_failed", status: 401, request_id: "req_abc"
       )
       expect(err.to_payload).to eq(
-        "code" => "authentication_failed",
-        "message" => "Forbidden",
-        "status" => 401,
-        "requestId" => "req_abc"
+        code: "authentication_failed",
+        message: "Forbidden",
+        status: 401,
+        requestId: "req_abc"
       )
-      expect(err.to_payload.keys).to eq(%w[code message status requestId])
+      expect(err.to_payload.keys).to eq(%i[code message status requestId])
+      expect(JSON.generate(err.to_payload))
+        .to eq('{"code":"authentication_failed","message":"Forbidden","status":401,"requestId":"req_abc"}')
     end
 
     it "has the same four keys for every SDK error" do
@@ -164,36 +166,36 @@ RSpec.describe PoliPage::Error do
         PoliPage::DownloadError.new(status: 403), PoliPage::InvalidResponseError.new(status: 200),
         PoliPage::FileWriteError.new(cause: Errno::ENOSPC.new), PoliPage::InvalidOptionsError.new("apiKey is required")
       ]
-      expect(errors.map { |e| e.to_payload.keys }.uniq).to eq([%w[code message status requestId]])
+      expect(errors.map { |e| e.to_payload.keys }.uniq).to eq([%i[code message status requestId]])
     end
 
     it "uses 503 for ConnectionError" do
       err = PoliPage::ConnectionError.new(message: "dns")
-      expect(err.to_payload["status"]).to eq(503)
+      expect(err.to_payload[:status]).to eq(503)
       expect(err.status).to be_nil
     end
 
     it "uses 504 for TimeoutError" do
       err = PoliPage::TimeoutError.new(timeout: 30)
-      expect(err.to_payload["status"]).to eq(504)
+      expect(err.to_payload[:status]).to eq(504)
       expect(err.status).to be_nil
     end
 
     it "uses 502 for invalid_response, whose own status stays the real 2xx" do
       err = PoliPage::InvalidResponseError.new(status: 200, request_id: "req_proxy")
-      expect(err.to_payload).to eq("code" => "invalid_response",
-                                   "message" => "Invalid response: HTTP 200 body is not JSON",
-                                   "status" => 502, "requestId" => "req_proxy")
+      expect(err.to_payload).to eq(code: "invalid_response",
+                                   message: "Invalid response: HTTP 200 body is not JSON",
+                                   status: 502, requestId: "req_proxy")
       expect(err.status).to eq(200)
     end
 
     it "has a nil status for io_error" do
-      expect(PoliPage::FileWriteError.new(cause: Errno::ENOSPC.new).to_payload["status"]).to be_nil
+      expect(PoliPage::FileWriteError.new(cause: Errno::ENOSPC.new).to_payload[:status]).to be_nil
     end
 
     it "requestId is nil when absent" do
       err = PoliPage::ConnectionError.new(message: "dns")
-      expect(err.to_payload).to include("requestId" => nil)
+      expect(err.to_payload).to include(requestId: nil)
     end
   end
 

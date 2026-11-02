@@ -41,11 +41,11 @@ to 0.13. See [MIGRATION.md](MIGRATION.md#from-0110-to-0130).
 
 ### Changed
 
-- **BREAKING**: `Error#to_payload` returns exactly the String keys `"code"`,
-  `"message"`, `"status"` and `"requestId"`, the keys every Poli Page SDK
-  uses, so every framework integration answers the same JSON body. It
-  returned the Symbol keys `:code`, `:message`, `:status` and `:request_id`:
-  read `payload["requestId"]` instead of `payload[:request_id]`.
+- **BREAKING**: `Error#to_payload` returns `{ code:, message:, status:,
+  requestId: }`: the `:request_id` key is renamed `:requestId`, the key every
+  Poli Page SDK uses, so every framework integration answers the same JSON
+  body (`"requestId"`). Read `payload[:requestId]` instead of
+  `payload[:request_id]`. The other keys are unchanged.
 - **BREAKING**: a 2xx whose body is not JSON (an empty body included) was
   `PoliPage::InternalError` (`INTERNAL_ERROR`,
   `response body was not valid JSON: …`); it is now `invalid_response`
@@ -60,7 +60,8 @@ to 0.13. See [MIGRATION.md](MIGRATION.md#from-0110-to-0130).
   (before, a failure deleted the target). The directory and the temporary
   file are prepared before the render, so a path that cannot be written
   costs no render. A new file gets the usual mode (`0666` minus the umask);
-  a replaced file keeps its own.
+  a replaced file keeps its own. When the target is a symbolic link, the file
+  it points to gets the PDF and the link stays a link.
 - The presigned-URL download is bounded by the client's `timeout:`. For
   `render.pdf` and `download_pdf` it bounds the whole download, from the
   connection to the last byte. For `render.pdf_stream` and `render_to_file`

@@ -65,21 +65,22 @@ module PoliPage
     end
 
     # The HTTP body a framework integration answers with: exactly the four
-    # String keys `"code"`, `"message"`, `"status"` and `"requestId"`, spelled
-    # the same in every Poli Page SDK so that every integration answers the
-    # same JSON. `"status"` is the API status for status-bearing errors, 503
-    # for `network_error`, 504 for `timeout`, 502 for `invalid_response`, and
-    # nil when unknown; `"requestId"` is nil when unknown. The {#status}
-    # reader itself is unchanged: nil for transport errors, the real 2xx for
+    # keys `code`, `message`, `status` and `requestId`, spelled the same in
+    # every Poli Page SDK so that every integration answers the same JSON.
+    # `status` is the API status for status-bearing errors, 503 for
+    # `network_error`, 504 for `timeout`, 502 for `invalid_response`, and nil
+    # when unknown; `requestId` is nil when unknown. The {#status} reader
+    # itself is unchanged: nil for transport errors, the real 2xx for
     # `invalid_response`.
     #
-    # @return [Hash{String=>(String, Integer, nil)}]
+    # @return [Hash{Symbol=>(String, Integer, nil)}]
+    #   `{ code:, message:, status:, requestId: }`
     def to_payload
       {
-        "code" => @code,
-        "message" => message,
-        "status" => payload_status,
-        "requestId" => @request_id
+        code: @code,
+        message: message,
+        status: payload_status,
+        requestId: @request_id
       }
     end
 

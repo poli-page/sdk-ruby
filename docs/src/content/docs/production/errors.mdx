@@ -71,12 +71,12 @@ The SDK's own messages are fixed texts: `Network request failed`, `Request timed
 
 ## Framework integrations: `to_payload`
 
-`Error#to_payload` returns the HTTP body an integration answers with: exactly the String keys `"code"`, `"message"`, `"status"` and `"requestId"`, spelled the same in every Poli Page SDK. `"status"` is the API status, `503` for `network_error`, `504` for `timeout`, `502` for `invalid_response` (whose own `status` stays the real 2xx), and `nil` when unknown.
+`Error#to_payload` returns the HTTP body an integration answers with: exactly the keys `code:`, `message:`, `status:` and `requestId:`, the same JSON in every Poli Page SDK. `status:` is the API status, `503` for `network_error`, `504` for `timeout`, `502` for `invalid_response` (whose own `status` stays the real 2xx), and `nil` when unknown.
 
 ```ruby
 rescue PoliPage::Error => e
   e.to_payload
-  # => { "code" => "TEMPLATE_NOT_FOUND", "message" => "...", "status" => 404, "requestId" => "req_..." }
+  # => { code: "TEMPLATE_NOT_FOUND", message: "...", status: 404, requestId: "req_..." }
 end
 ```
 

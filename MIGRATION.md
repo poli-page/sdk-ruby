@@ -12,12 +12,12 @@ The SDK now shares its major.minor with the Poli Page API, so there is no
 0.12. This release follows the API contract v0.13.0. No method or option is
 renamed; error handling and framework integrations may need a change.
 
-### `to_payload` has String keys, `requestId` included
+### `to_payload` names its request id `requestId`
 
 `Error#to_payload` returns the body a framework integration answers with,
-and every Poli Page SDK now spells it the same way: exactly the String keys
-`"code"`, `"message"`, `"status"` and `"requestId"`. It used to return
-Symbol keys, with `:request_id`.
+and every Poli Page SDK now spells it the same way: exactly the keys
+`code:`, `message:`, `status:` and `requestId:`. Its `:request_id` key is
+renamed `:requestId`; the other keys are unchanged.
 
 ```ruby
 # 0.11.0
@@ -27,12 +27,12 @@ render json: payload           # answered {"code":…,"request_id":"req_…"}
 
 # 0.13.0
 payload = e.to_payload
-payload["requestId"]           # => "req_..."
+payload[:requestId]            # => "req_..."
 render json: payload           # answers {"code":…,"requestId":"req_…"}
 ```
 
 If your integration renamed `request_id` to `requestId` itself, drop the
-rename. Its `"status"` is 502 for the new `invalid_response` (below).
+rename. Its `:status` is 502 for the new `invalid_response` (below).
 
 ### A 2xx whose body is not JSON is `invalid_response`
 
