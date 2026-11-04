@@ -14,7 +14,7 @@ module PoliPage
     def validation_error?: () -> bool
     def network_error?: () -> bool
     def retryable?: () -> bool
-    def to_payload: () -> { code: String, message: String, status: Integer?, request_id: String? }
+    def to_payload: () -> { code: String, message: String, status: Integer?, requestId: String? }
     def payload_status: () -> Integer?
   end
 
@@ -54,7 +54,15 @@ module PoliPage
   end
 
   class DownloadError < Error
-    def initialize: (?status: Integer?, ?cause: Exception?, ?message: String?) -> void
+    def initialize: (?status: Integer?, ?cause: Exception?, ?message: String?, ?timeout: bool) -> void
+  end
+
+  class InvalidResponseError < Error
+    def initialize: (status: Integer, ?request_id: String?, ?cause: Exception?) -> void
+  end
+
+  class FileWriteError < Error
+    def initialize: (cause: Exception) -> void
   end
 
   class InternalError < Error

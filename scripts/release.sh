@@ -16,6 +16,8 @@
 #   - HEAD is exactly `origin/main` (nothing unpushed, nothing behind)
 #   - CHANGELOG.md has a `## [X.Y.Z]` section for the version
 #   - target tag does not yet exist locally or on `origin`
+#   - the API contract pinned in .github/workflows/ci.yml has the version's
+#     major.minor (scripts/check-contract-version.sh)
 #
 # Verify (gates the release on local CI):
 #   - bundle config set --local frozen true && bundle install
@@ -99,10 +101,16 @@ if git ls-remote --tags origin 2>/dev/null | grep -qE "refs/tags/${TAG}\$"; then
 fi
 ok "tag ${TAG} does not yet exist"
 
+# The SDK shares its major.minor with the Poli Page API: the pinned API
+# contract must carry a stable tag of the release's major.minor.
+contract_check="$(scripts/check-contract-version.sh "$VERSION" 2>&1)" || fail "$contract_check"
+ok "$contract_check"
+
 # ─ API contract ──────────────────────────────────────────────────────────
 # The contract version CI pins (poli-page/api-contract action in
-# .github/workflows/ci.yml). Keep the two in step when Dependabot bumps it.
-CONTRACT_SHA="0eba96c1ecf9a28b7e259f444f3ca5b7c059d5fd" # v1.3.0
+# .github/workflows/ci.yml), read from the workflow so the two never drift.
+CONTRACT_SHA="$(sed -n 's|.*uses: poli-page/api-contract@\([0-9a-f]\{40\}\).*|\1|p' .github/workflows/ci.yml | head -n 1)"
+[[ -n "$CONTRACT_SHA" ]] || fail "no poli-page/api-contract pin found in .github/workflows/ci.yml"
 echo
 say "API contract"
 if [[ -n "${POLI_CONTRACT:-}" ]]; then

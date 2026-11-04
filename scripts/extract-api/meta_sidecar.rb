@@ -27,7 +27,8 @@ module MetaSidecar
         "PoliPage::PermissionDeniedError", "PoliPage::NotFoundError", "PoliPage::GoneError",
         "PoliPage::RateLimitError", "PoliPage::APIError",
         "PoliPage::InvalidOptionsError", "PoliPage::ConnectionError",
-        "PoliPage::TimeoutError", "PoliPage::DownloadError", "PoliPage::InternalError"
+        "PoliPage::TimeoutError", "PoliPage::DownloadError", "PoliPage::InvalidResponseError",
+        "PoliPage::FileWriteError", "PoliPage::InternalError"
       ].map { |c| { code: c } }
     }
   end

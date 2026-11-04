@@ -145,7 +145,7 @@ RSpec.describe PoliPage::Error do
   end
 
   describe "#to_payload" do
-    it "uses API status for status-bearing errors" do
+    it "has exactly the keys code, message, status and requestId" do
       err = PoliPage::AuthenticationError.new(
         "Forbidden", code: "authentication_failed", status: 401, request_id: "req_abc"
       )
@@ -153,8 +153,20 @@ RSpec.describe PoliPage::Error do
         code: "authentication_failed",
         message: "Forbidden",
         status: 401,
-        request_id: "req_abc"
+        requestId: "req_abc"
       )
+      expect(err.to_payload.keys).to eq(%i[code message status requestId])
+      expect(JSON.generate(err.to_payload))
+        .to eq('{"code":"authentication_failed","message":"Forbidden","status":401,"requestId":"req_abc"}')
+    end
+
+    it "has the same four keys for every SDK error" do
+      errors = [
+        PoliPage::ConnectionError.new, PoliPage::TimeoutError.new(timeout: 1),
+        PoliPage::DownloadError.new(status: 403), PoliPage::InvalidResponseError.new(status: 200),
+        PoliPage::FileWriteError.new(cause: Errno::ENOSPC.new), PoliPage::InvalidOptionsError.new("apiKey is required")
+      ]
+      expect(errors.map { |e| e.to_payload.keys }.uniq).to eq([%i[code message status requestId]])
     end
 
     it "uses 503 for ConnectionError" do
@@ -169,9 +181,49 @@ RSpec.describe PoliPage::Error do
       expect(err.status).to be_nil
     end
 
-    it "request_id is nil when absent" do
+    it "uses 502 for invalid_response, whose own status stays the real 2xx" do
+      err = PoliPage::InvalidResponseError.new(status: 200, request_id: "req_proxy")
+      expect(err.to_payload).to eq(code: "invalid_response",
+                                   message: "Invalid response: HTTP 200 body is not JSON",
+                                   status: 502, requestId: "req_proxy")
+      expect(err.status).to eq(200)
+    end
+
+    it "has a nil status for io_error" do
+      expect(PoliPage::FileWriteError.new(cause: Errno::ENOSPC.new).to_payload[:status]).to be_nil
+    end
+
+    it "requestId is nil when absent" do
       err = PoliPage::ConnectionError.new(message: "dns")
-      expect(err.to_payload[:request_id]).to be_nil
+      expect(err.to_payload).to include(requestId: nil)
+    end
+  end
+
+  describe "invalid_response and io_error" do
+    it "InvalidResponseError carries code 'invalid_response', the real status, and is never retryable" do
+      cause = JSON::ParserError.new("unexpected token")
+      err = PoliPage::InvalidResponseError.new(status: 200, request_id: "req_x", cause: cause)
+      expect([err.code, err.status, err.request_id, err.message])
+        .to eq(["invalid_response", 200, "req_x", "Invalid response: HTTP 200 body is not JSON"])
+      expect(err.cause).to be(cause)
+      expect(err.retryable?).to be false
+      expect(err.network_error?).to be false
+    end
+
+    it "FileWriteError carries code 'io_error', no status, the Ruby error's text and the error as cause" do
+      cause = Errno::EACCES.new("/tmp/out.pdf")
+      err = PoliPage::FileWriteError.new(cause: cause)
+      expect([err.code, err.status, err.request_id]).to eq(["io_error", nil, nil])
+      expect(err.message).to eq("Failed to write PDF: #{cause.message}")
+      expect(err.cause).to be(cause)
+      expect(err.retryable?).to be false
+    end
+
+    it "DownloadError with timeout: true has the timeout message, no status, and is never retryable" do
+      err = PoliPage::DownloadError.new(timeout: true)
+      expect([err.code, err.status, err.message]).to eq(["DOWNLOAD_FAILED", nil, "Failed to download PDF: timeout"])
+      expect(err.retryable?).to be false
+      expect(err.network_error?).to be false
     end
   end
 end
