@@ -29,11 +29,11 @@ module PoliPage
     # - {#fetch_bytes} (`download_pdf`, `render.pdf`): the whole download,
     #   from opening the connection to the last byte of the body.
     # - {#stream_bytes} (`render.pdf_stream`, `render_to_file`): an idle
-    #   timeout. Opening the connection and waiting for the answer's head are
-    #   bounded together; then each wait for the next chunk is bounded on its
-    #   own (`Net::HTTP`'s `read_timeout`), so a large PDF read at the
-    #   caller's pace is not cut off. Time spent in the caller's block is
-    #   never counted.
+    #   timeout. Opening the connection, the request, the answer's head and
+    #   the first chunk of the body share one deadline; then each wait for
+    #   the next chunk is bounded on its own (`Net::HTTP`'s `read_timeout`),
+    #   so a large PDF read at the caller's pace is not cut off. Time spent
+    #   in the caller's block is never counted.
     #
     # A failure is labelled a timeout only when one of those bounds fired:
     # `Net::HTTP`'s own `Net::OpenTimeout` / `Net::ReadTimeout` /
@@ -80,17 +80,17 @@ module PoliPage
       private
 
       def new_download
-        { deadline: HTTP.monotonic_now + @timeout, watchdog: nil, in_block: false }
+        { deadline: HTTP.monotonic_now + @timeout, watchdog: nil, in_block: false, first_chunk_in: false }
       end
 
-      # The head watchdog bounds the request and the wait for the answer's
-      # head; once the head is in, `read_timeout` bounds each wait for the
-      # next chunk.
+      # The first-byte watchdog bounds the request, the answer's head and the
+      # wait for the first chunk of the body; it is disarmed when that chunk
+      # arrives, and `read_timeout` then bounds each wait for the next one.
+      # The `ensure` disarms it for an empty body or an error.
       def stream_body(http, uri, download, block)
         watchdog = download[:watchdog] = Watchdog.new(presigned_time_left(download)) { http.finish }
         begin
           http.request(Net::HTTP::Get.new(uri.request_uri)) do |response|
-            watchdog.disarm
             guard_stream!(response)
             response.read_body { |chunk| yield_chunk(download, block, chunk) }
           end
@@ -100,6 +100,10 @@ module PoliPage
       end
 
       def yield_chunk(download, block, chunk)
+        unless download[:first_chunk_in]
+          download[:watchdog].disarm
+          download[:first_chunk_in] = true
+        end
         download[:in_block] = true
         block.call(chunk)
         download[:in_block] = false

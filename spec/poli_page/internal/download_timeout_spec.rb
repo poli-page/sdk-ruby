@@ -186,8 +186,25 @@ RSpec.describe PoliPage::Internal::PresignedFetch do
       end
     end
 
+    it "bounds the head and the first byte together: a late head leaves less time for the first byte" do
+      late_head_then_stall = lambda do |socket, _request|
+        sleep(0.8)
+        socket.write(head(pdf.bytesize))
+        sleep(3)
+      end
+      with_server([late_head_then_stall]) do |server|
+        chunks = []
+        error, took = failure { client(timeout: 1).stream_bytes(url(server)) { |c| chunks << c } }
+        expect_timeout(error)
+        expect(chunks).to be_empty
+        # One shared timeout ends it at about 1 s; a fresh one after the head
+        # would have waited until about 1.8 s.
+        expect(took).to be_between(0.9, 1.5)
+      end
+    end
+
     it "streams a body that outlasts the timeout as long as each gap is shorter" do
-      with_server([drip_body(pdf, every: 0.05)]) do |server|
+      with_server([drip_body(pdf, every: 0.1)]) do |server|
         received = +""
         client(timeout: 0.5).stream_bytes(url(server)) { |c| received << c }
         expect(received).to eq(pdf)
