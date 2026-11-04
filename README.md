@@ -95,7 +95,10 @@ client.render_to_file(
 `render.pdf_stream` — bounded memory regardless of PDF size. Parent
 directories are created on the fly. The PDF goes to a temporary file next
 to the target, renamed over it once complete, so a failed render, download
-or write leaves the target as it was. A file that cannot be written raises
+or write leaves the target as it was. This needs write permission on the
+target's directory, and a replaced file is a new file (your process owns
+it; a hard link to the old one keeps the old content). A symbolic link is
+followed: the file it points to gets the PDF. A file that cannot be written raises
 `PoliPage::FileWriteError` (code `io_error`, message
 `Failed to write PDF: <reason>`, the Ruby error as `cause`).
 
@@ -176,8 +179,8 @@ The presigned URL has a 15-minute TTL. If `download_pdf` raises
 `PoliPage::DownloadError` with `status: 403` from S3, call
 `documents.get(id)` to refresh and retry. The client's `timeout:` also
 bounds the download: the whole download for `download_pdf` and
-`render.pdf`, and each wait for the next chunk for `render.pdf_stream`
-and `render_to_file`. Past it, `DownloadError` has the message
+`render.pdf`, and the wait for the first byte, then each wait for the next
+chunk, for `render.pdf_stream` and `render_to_file`. Past it, `DownloadError` has the message
 `Failed to download PDF: timeout`.
 
 ## Authentication & environments

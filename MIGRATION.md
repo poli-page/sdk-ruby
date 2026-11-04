@@ -54,8 +54,10 @@ rescue PoliPage::InvalidResponseError => e
 
 ### `render_to_file` raises `io_error`
 
-A file that cannot be written was `PoliPage::InvalidOptionsError`; it is now
-`PoliPage::FileWriteError`, code `io_error`, with the message
+A file that cannot be written was `PoliPage::InvalidOptionsError` for
+`EACCES`, `ENOSPC`, `EISDIR`, `ENOENT` and `EROFS`, and the raw Ruby
+exception for anything else; it is now always `PoliPage::FileWriteError`,
+code `io_error`, with the message
 `Failed to write PDF: <reason>` and Ruby's error as `cause`. The target is
 left untouched on any failure: it is no longer deleted when the render
 fails.
@@ -73,7 +75,7 @@ The presigned-URL download now uses the client's `timeout:` (60 s by
 default). `render.pdf` and `download_pdf` bound the whole download, so raise
 `timeout:` if your PDFs take longer than that to download.
 `render.pdf_stream` and `render_to_file` use it as an idle timeout, the wait
-for the answer and each gap between two chunks, and are never cut off for
+for the first byte of the PDF and each gap between two chunks, and are never cut off for
 their total length. Past the timeout the error is `DOWNLOAD_FAILED` with the
 message `Failed to download PDF: timeout` (was
 `Failed to download PDF: network error`).

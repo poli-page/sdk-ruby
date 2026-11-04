@@ -62,7 +62,7 @@ pdf = doc.download_pdf
 
 ## Download timeout
 
-The client's `timeout:` bounds the download of the PDF too. For `download_pdf` and `render.pdf` it bounds the whole download; for `render.pdf_stream` and `render_to_file` it bounds the wait for the answer and each wait for the next chunk, so a large PDF read at your own pace is never cut off. Past it, the call raises `PoliPage::DownloadError` with the message `Failed to download PDF: timeout`. The download is never retried.
+The client's `timeout:` bounds the download of the PDF too. For `download_pdf` and `render.pdf` it bounds the whole download; for `render.pdf_stream` and `render_to_file` it bounds the wait for the first byte of the PDF and each wait for the next chunk, so a large PDF read at your own pace is never cut off. Past it, the call raises `PoliPage::DownloadError` with the message `Failed to download PDF: timeout`. The download is never retried.
 
 ## Example
 

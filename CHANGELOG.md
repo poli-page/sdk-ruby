@@ -50,9 +50,11 @@ to 0.13. See [MIGRATION.md](MIGRATION.md#from-0110-to-0130).
   `PoliPage::InternalError` (`INTERNAL_ERROR`,
   `response body was not valid JSON: …`); it is now `invalid_response`
   (above). A 2xx JSON value that is not an object stays `INTERNAL_ERROR`.
-- **BREAKING**: `render_to_file` failures to write the file were
-  `PoliPage::InvalidOptionsError` (`invalid_options`,
-  `failed to write to <path>: …`); they are now `io_error`.
+- **BREAKING**: `render_to_file` failures to write the file are now
+  `io_error`, whatever the error. Before, `EACCES`, `ENOSPC`, `EISDIR`,
+  `ENOENT` and `EROFS` were `PoliPage::InvalidOptionsError`
+  (`invalid_options`, `failed to write to <path>: …`), and any other error
+  (`ENOTDIR`, `EPERM`, `IOError`…) escaped as the raw Ruby exception.
 - `render_to_file` writes to a temporary file in the target's directory and
   renames it over the target only once the PDF is complete. When anything
   fails (the render, the download or the write), the target is left as it
@@ -61,12 +63,18 @@ to 0.13. See [MIGRATION.md](MIGRATION.md#from-0110-to-0130).
   file are prepared before the render, so a path that cannot be written
   costs no render. A new file gets the usual mode (`0666` minus the umask);
   a replaced file keeps its own. When the target is a symbolic link, the file
-  it points to gets the PDF and the link stays a link.
+  it points to gets the PDF and the link stays a link. An existing target
+  that is not writable raises `io_error` before any render and is not
+  replaced. Because the PDF is renamed into place, `render_to_file` needs
+  write permission on the target's directory, and a replaced file is a new
+  file: it is owned by the user that runs the SDK, and a hard link to the
+  old file keeps the old content.
 - The presigned-URL download is bounded by the client's `timeout:`. For
   `render.pdf` and `download_pdf` it bounds the whole download, from the
   connection to the last byte. For `render.pdf_stream` and `render_to_file`
-  it bounds the wait for the answer, then each wait for the next chunk (an
-  idle timeout), so a large PDF read at the caller's pace is not cut off.
+  it bounds the wait for the first byte of the PDF (connection, answer and
+  first chunk together), then each wait for the next chunk (an idle
+  timeout), so a large PDF read at the caller's pace is not cut off.
   Before, `timeout:` only bounded each socket operation of the download, so
   a slow storage could keep `render.pdf` going well past it.
 - A download that outlasts its timeout raises `DOWNLOAD_FAILED` with the
