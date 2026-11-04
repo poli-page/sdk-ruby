@@ -64,23 +64,33 @@ module PoliPage
     private_constant :MAX_LINKS
 
     # The file `path` names once its symbolic links are followed, so the
-    # rename replaces that file, not the link. A link whose target does not
-    # exist yet resolves to that target, which the rename then creates.
+    # rename replaces that file, not the link. An existing file is its real
+    # path. A link whose target does not exist yet resolves, hop by hop, to
+    # that target, which the rename then creates: each relative link is read
+    # against the real directory of the link, as the file system does, so a
+    # `..` after a linked directory leaves the directory the link points to.
     def resolve_links(path)
-      MAX_LINKS.times do
-        return path unless path.symlink?
+      return Pathname(File.realpath(path)) if path.exist?
 
-        link = path.readlink
-        path = link.absolute? ? link : path.dirname + link
+      current = path.to_s
+      MAX_LINKS.times do
+        return Pathname(current) unless File.symlink?(current)
+
+        link = File.readlink(current)
+        current = File.absolute_path?(link) ? link : File.join(File.realpath(File.dirname(current)), link)
       end
       raise Errno::ELOOP, path.to_s
     end
 
     # The temporary file sits next to the target, so the final rename stays
     # on one file system and replaces the target in one step.
+    # A target that exists but cannot be written fails here, before any
+    # render, as opening it for writing would: the rename could replace it
+    # even so.
     def open_temp_file(target)
       file_write do
         raise Errno::EISDIR, target.to_s if target.directory?
+        raise Errno::EACCES, target.to_s if target.exist? && !target.writable?
 
         FileUtils.mkdir_p(target.dirname)
         Tempfile.create([".#{target.basename}.", ".part"], target.dirname.to_s, binmode: true)

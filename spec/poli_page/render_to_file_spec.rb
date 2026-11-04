@@ -198,6 +198,36 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
     end
   end
 
+  # `sym -> real/dir` and `real/dir/link -> ../a.pdf`: the link's `..` leaves
+  # `real/dir`, the directory `sym` points to, so `sym/link` is `real/a.pdf`.
+  def linked_directory(dir)
+    FileUtils.mkdir_p(File.join(dir, "real", "dir"))
+    File.symlink(File.join("real", "dir"), File.join(dir, "sym"))
+    File.symlink(File.join("..", "a.pdf"), File.join(dir, "real", "dir", "link"))
+    File.join(dir, "sym", "link")
+  end
+
+  it "reads a link's .. against the link's real directory, for an existing file", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      path = linked_directory(dir)
+      File.write(File.join(dir, "real", "a.pdf"), "previous")
+      client.render_to_file(path, project: "billing", template: "invoice", data: {})
+      expect(File.binread(File.join(dir, "real", "a.pdf"))).to eq("%PDF-1.4 stub data")
+      expect(File.symlink?(File.join(dir, "real", "dir", "link"))).to be true
+      expect(File.exist?(File.join(dir, "a.pdf"))).to be false
+    end
+  end
+
+  it "reads a link's .. against the link's real directory, for a file not there yet", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      path = linked_directory(dir)
+      client.render_to_file(path, project: "billing", template: "invoice", data: {})
+      expect(File.binread(File.join(dir, "real", "a.pdf"))).to eq("%PDF-1.4 stub data")
+      expect(File.symlink?(File.join(dir, "real", "dir", "link"))).to be true
+      expect(Dir.children(dir).sort).to eq(%w[real sym])
+    end
+  end
+
   it "raises io_error before any render for a loop of symbolic links", skip: Gem.win_platform? do
     Dir.mktmpdir do |dir|
       File.symlink("b.pdf", File.join(dir, "a.pdf"))
@@ -205,6 +235,26 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
       expect { client.render_to_file(File.join(dir, "a.pdf"), project: "billing", template: "invoice", data: {}) }
         .to raise_error(PoliPage::FileWriteError) { |e| expect(e.cause).to be_a(Errno::ELOOP) }
       expect(a_request(:post, "https://api.poli.page/v1/render")).not_to have_been_made
+    end
+  end
+
+  # As root, every file is writable.
+  it "raises io_error before any render, and keeps the file, when the target is read-only",
+     skip: Process.respond_to?(:euid) && Process.euid.zero? do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "out.pdf")
+      File.write(path, "previous")
+      File.chmod(0o444, path)
+      expect { client.render_to_file(path, project: "billing", template: "invoice", data: {}) }
+        .to raise_error(PoliPage::FileWriteError, /\AFailed to write PDF: /) { |e|
+          expect(e.cause).to be_a(Errno::EACCES)
+          expect(e.status).to be_nil
+        }
+      expect(a_request(:post, "https://api.poli.page/v1/render")).not_to have_been_made
+      expect(File.read(path)).to eq("previous")
+      expect(Dir.children(dir)).to eq(["out.pdf"])
+    ensure
+      File.chmod(0o644, path) if path && File.exist?(path)
     end
   end
 
