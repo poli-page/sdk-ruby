@@ -77,10 +77,39 @@ RSpec.describe PoliPage::Client, "#render_to_file" do
 
   it "raises io_error before any render when the path is a directory" do
     Dir.mktmpdir do |dir|
+      target = File.realpath(dir)
       expect { client.render_to_file(dir, project: "billing", template: "invoice", data: {}) }
-        .to raise_error(PoliPage::FileWriteError) { |e| expect(e.cause).to be_a(Errno::EISDIR) }
+        .to raise_error(PoliPage::FileWriteError, "Failed to write PDF: #{target}: not a regular file") { |e|
+          expect([e.code, e.status]).to eq(["io_error", nil])
+          expect(e.cause).to be_a(IOError)
+        }
       expect(a_request(:post, "https://api.poli.page/v1/render")).not_to have_been_made
       expect(Dir.children(dir)).to be_empty
+    end
+  end
+
+  it "raises io_error before any render, and keeps the FIFO, when the path is a FIFO", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      path = File.join(dir, "out.pdf")
+      File.mkfifo(path)
+      target = File.realpath(path)
+      expect { client.render_to_file(path, project: "billing", template: "invoice", data: {}) }
+        .to raise_error(PoliPage::FileWriteError, "Failed to write PDF: #{target}: not a regular file")
+      expect(a_request(:post, "https://api.poli.page/v1/render")).not_to have_been_made
+      expect(File.pipe?(path)).to be true
+      expect(Dir.children(dir)).to eq(["out.pdf"])
+    end
+  end
+
+  it "raises io_error before any render for a link to a directory", skip: Gem.win_platform? do
+    Dir.mktmpdir do |dir|
+      FileUtils.mkdir(File.join(dir, "real"))
+      File.symlink("real", File.join(dir, "link.pdf"))
+      target = File.realpath(File.join(dir, "real"))
+      expect { client.render_to_file(File.join(dir, "link.pdf"), project: "billing", template: "invoice", data: {}) }
+        .to raise_error(PoliPage::FileWriteError, "Failed to write PDF: #{target}: not a regular file")
+      expect(a_request(:post, "https://api.poli.page/v1/render")).not_to have_been_made
+      expect(File.symlink?(File.join(dir, "link.pdf"))).to be true
     end
   end
 

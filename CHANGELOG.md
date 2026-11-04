@@ -64,7 +64,10 @@ to 0.13. See [MIGRATION.md](MIGRATION.md#from-0110-to-0130).
   costs no render. A new file gets the usual mode (`0666` minus the umask);
   a replaced file keeps its own. When the target is a symbolic link, the file
   it points to gets the PDF and the link stays a link. An existing target
-  that is not writable raises `io_error` before any render and is not
+  that is not a regular file (a directory, a FIFO, a device, a socket)
+  raises `io_error` with the message
+  `Failed to write PDF: <path>: not a regular file`, and one that is not
+  writable raises `io_error` too; both fail before any render and are not
   replaced. Because the PDF is renamed into place, `render_to_file` needs
   write permission on the target's directory, and a replaced file is a new
   file: it is owned by the user that runs the SDK, and a hard link to the

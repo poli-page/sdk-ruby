@@ -84,12 +84,16 @@ module PoliPage
 
     # The temporary file sits next to the target, so the final rename stays
     # on one file system and replaces the target in one step.
-    # A target that exists but cannot be written fails here, before any
-    # render, as opening it for writing would: the rename could replace it
-    # even so.
+    #
+    # Two targets fail here, before any render, checked from the file's
+    # attributes without opening it: one that exists but is not a regular
+    # file (a directory, a FIFO, a device, a socket), which the rename would
+    # otherwise replace with a regular file, and one that cannot be written,
+    # as opening it for writing would fail (the rename could replace it even
+    # so). `target` is already resolved, so a link to a regular file passes.
     def open_temp_file(target)
       file_write do
-        raise Errno::EISDIR, target.to_s if target.directory?
+        raise ::IOError, "#{target}: not a regular file" if target.exist? && !target.file?
         raise Errno::EACCES, target.to_s if target.exist? && !target.writable?
 
         FileUtils.mkdir_p(target.dirname)

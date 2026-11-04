@@ -98,7 +98,9 @@ to the target, renamed over it once complete, so a failed render, download
 or write leaves the target as it was. This needs write permission on the
 target's directory, and a replaced file is a new file (your process owns
 it; a hard link to the old one keeps the old content). A symbolic link is
-followed: the file it points to gets the PDF. A file that cannot be written raises
+followed: the file it points to gets the PDF. A target that is not a
+regular file (a directory, a FIFO, a device) fails before any render with
+`Failed to write PDF: <path>: not a regular file`. A file that cannot be written raises
 `PoliPage::FileWriteError` (code `io_error`, message
 `Failed to write PDF: <reason>`, the Ruby error as `cause`).
 
