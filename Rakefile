@@ -15,7 +15,10 @@ RuboCop::RakeTask.new(:rubocop)
 
 desc "Validate RBS signature syntax under sig/"
 task :rbs_validate do
-  sh "bundle exec rbs validate"
+  # Plain `rbs validate` loads no sig/ directory, so -I sig is required; the -r
+  # libraries are the ones the Steepfile declares.
+  libs = %w[json uri net-http openssl logger securerandom fileutils pathname cgi]
+  sh "bundle exec rbs -I sig #{libs.map { |l| "-r #{l}" }.join(" ")} validate"
 end
 
 desc "Run Steep type-check (errors only, allows warnings)"
