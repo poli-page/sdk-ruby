@@ -19,10 +19,9 @@ on:
     types: [published]
   workflow_dispatch:
 
-# Pages deploy needs `pages: write`; the deploy job adds OIDC `id-token: write`.
+# Least privilege: read-only by default; only the deploy job gets `pages: write` and OIDC `id-token: write`.
 permissions:
   contents: read
-  pages: write
 
 # Prevent overlapping deploys; queue the latest commit and keep main
 # always reflecting HEAD on Pages.
@@ -36,6 +35,10 @@ jobs:
   build:
     name: Build Starlight site
     runs-on: ubuntu-latest
+    # actions/configure-pages reads the Pages settings; nothing here writes.
+    permissions:
+      contents: read
+      pages: read
     steps:
       - name: Checkout
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
