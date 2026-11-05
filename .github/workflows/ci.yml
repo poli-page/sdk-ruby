@@ -8,15 +8,18 @@ on:
 
 permissions:
   contents: read
-  # Required by the Codecov uploader (use_oidc: true) so it can mint a
-  # short-lived OIDC token instead of relying on a CODECOV_TOKEN secret.
-  id-token: write
 
 # All third-party Actions pinned to 40-char commit SHAs (supply-chain hardening).
 # The trailing comment is the human-readable tag; bump SHA + tag together via Dependabot.
 
 jobs:
   test:
+    # id-token: write is for the Codecov OIDC upload in this job only.
+    # contents: read is restated because a job-level block replaces the
+    # workflow-level one.
+    permissions:
+      contents: read
+      id-token: write
     name: Ruby ${{ matrix.ruby }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
@@ -48,8 +51,11 @@ jobs:
       - name: RuboCop
         run: bundle exec rubocop
 
+      # Plain `rbs validate` loads no sig/ directory (no rbs_collection.yaml), so
+      # it exits 0 even on a broken signature. -I sig loads this repo's
+      # signatures; the -r libraries are the ones the Steepfile declares.
       - name: RBS validate
-        run: bundle exec rbs validate
+        run: bundle exec rbs -I sig -r json -r uri -r net-http -r openssl -r logger -r securerandom -r fileutils -r pathname -r cgi validate
 
       - name: YARD (fail on warning)
         run: bundle exec yard --fail-on-warning
