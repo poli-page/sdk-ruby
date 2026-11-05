@@ -45,8 +45,16 @@ RSpec.shared_examples "the API contract cases" do
     aggregate_failures do
       expect(run.describe_requests(requests)).to eq(PoliPageContract.substitute(requests, run.origin))
       expect(run.describe_events(events)).to eq(events)
+      check_call_duration(run, kase)
       check_result(run, kase) if check_result
     end
+  end
+
+  # `expect.minCallMs`: a case that sets none has no bound. A case stopped at
+  # a retry event never sets one (sdk-specification.md §12.1).
+  def check_call_duration(run, kase)
+    min_call_ms = kase.dig("expect", "minCallMs")
+    expect(run.describe_call_duration(min_call_ms)).to eq(min_call_ms)
   end
 
   def check_result(run, kase)

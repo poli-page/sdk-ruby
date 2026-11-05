@@ -12,7 +12,7 @@ module PoliPageContract
   # The contract file, or the skip list, is not something this harness can run.
   class ContractError < StandardError; end
 
-  KNOWN_FORMAT_VERSION = 1
+  KNOWN_FORMAT_VERSION = 2
 
   # This SDK's name in `policy.cancellationSdks`.
   SDK_NAME = "ruby"

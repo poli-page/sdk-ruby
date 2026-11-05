@@ -8,7 +8,8 @@
 # off) that answers the case's `responses` in order and records each request;
 # the example then compares the recorded requests, the `on_request` /
 # `on_retry` events and the normalized result with the case's `expect`.
-# Timing is checked as lower bounds, measured on the server.
+# Timing is checked as lower bounds: the gap between requests on the server's
+# clock, and `expect.minCallMs` on the harness's own monotonic clock.
 #
 # `spec/contract-skip.json` maps the case ids allowed to fail to the reason. A
 # listed case that passes, or a listed id that is not a case this suite runs,

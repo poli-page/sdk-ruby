@@ -15,8 +15,8 @@ RSpec.describe PoliPageContract do
   describe ".load_contract" do
     it "rejects a formatVersion it does not know" do
       Dir.mktmpdir do |dir|
-        expect { described_class.load_contract(write_json(dir, { "formatVersion" => 2 })) }
-          .to raise_error(PoliPageContract::ContractError, /formatVersion 2 is not supported/)
+        expect { described_class.load_contract(write_json(dir, { "formatVersion" => 3 })) }
+          .to raise_error(PoliPageContract::ContractError, /formatVersion 3 is not supported/)
       end
     end
 
@@ -84,6 +84,24 @@ RSpec.describe PoliPageContract do
     it "rejects a stop after more retries than the case has" do
       expect { described_class.expected_prefix(kase.merge("stopAfterRetryEvents" => 3)) }
         .to raise_error(PoliPageContract::ContractError, /fewer retries/)
+    end
+  end
+
+  describe PoliPageContract::CaseRun do
+    subject(:run) { described_class.new({}) }
+
+    def with_call_ms(value)
+      run.instance_variable_set(:@call_ms, value)
+      run
+    end
+
+    it "has no bound to report when the case sets no minCallMs" do
+      expect(with_call_ms(5).describe_call_duration(nil)).to be_nil
+    end
+
+    it "shows the bound when the call lasted at least that long, and the shortfall otherwise" do
+      expect(with_call_ms(480).describe_call_duration(480)).to eq(480)
+      expect(with_call_ms(479).describe_call_duration(480)).to eq("only 479 ms")
     end
   end
 end
