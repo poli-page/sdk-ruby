@@ -22,7 +22,7 @@ module PoliPageContract
 
     UUID_V4 = /\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/
 
-    attr_reader :origin, :result, :events, :recorded
+    attr_reader :origin, :result, :events, :recorded, :call_ms
 
     def initialize(kase)
       @case = kase
@@ -53,6 +53,14 @@ module PoliPageContract
       @recorded.each_with_index.map do |request, index|
         describe_request(request, index, expected[index] || {}, first_key)
       end
+    end
+
+    # `expect.minCallMs` (format 2) as observed: the bound when the call lasted
+    # at least that long, else `only <n> ms`. Nil when the case sets none.
+    def describe_call_duration(min_call_ms)
+      return nil if min_call_ms.nil?
+
+      call_ms >= min_call_ms ? min_call_ms : "only #{call_ms} ms"
     end
 
     # The observed events, a delay inside an expected `{min, max}` range
@@ -95,11 +103,25 @@ module PoliPageContract
     def invoke
       catch(:poli_contract_stop) do
         client = PoliPage::Client.new(**client_options)
-        { "ok" => true, "value" => call(client) }
+        { "ok" => true, "value" => timed_call(client) }
       rescue ContractError
         raise
       rescue StandardError => e
         { "ok" => false, "error" => normalize_error(e) }
+      end
+    end
+
+    # Times `call.method` on the monotonic clock (sdk-specification.md §12.1),
+    # from just before it starts, the client already built, to its return or
+    # throw (for `render.pdfStream`, the end of the stream). It stops before
+    # the harness compares anything or closes the mock.
+    def timed_call(client)
+      started = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      begin
+        call(client)
+      ensure
+        # N-DURATION-MS: whole milliseconds.
+        @call_ms = ((Process.clock_gettime(Process::CLOCK_MONOTONIC) - started) * 1000).round
       end
     end
 
