@@ -10,6 +10,26 @@ Breaking releases (minor bumps while on 0.x) are summarized in
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-11-17
+
+Conformance with the Poli Page API contract v0.15.0
+([poli-page/api-contract](https://github.com/poli-page/api-contract)). The
+SDK shares its major.minor with the Poli Page API, so it moves from 0.13 to
+0.15; there is no 0.14 (see [RELEASING.md](RELEASING.md#versions)). The
+SDK's own code is unchanged from 0.13.0, which already passes the new cases.
+No breaking change.
+
+### Changed
+
+- CI pins the API contract `v0.15.0`. Its format 2 lets a case set
+  `expect.minCallMs`, the least time the whole call must take: the
+  `timeout.hang` and `download.timeout` cases use it instead of a
+  per-request `minGapMsBefore`. `spec/contract` reads format 2, times each
+  call on the monotonic clock and fails a case that lasts less than its
+  bound. The contract adds the retry rule R-WAIT-FULL: no wait ends early, so
+  a retry delay lasts at least its delay and an attempt or download timeout
+  fires no sooner than `timeout` after it started.
+
 ## [0.13.0] - 2026-11-02
 
 Conformance with the Poli Page API contract v0.13.0
