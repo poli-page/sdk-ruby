@@ -10,7 +10,7 @@ Breaking releases (minor bumps while on 0.x) are summarized in
 
 ## [Unreleased]
 
-## [0.15.0] - 2026-11-16
+## [0.15.0] - 2026-11-17
 
 Conformance with the Poli Page API contract v0.15.0
 ([poli-page/api-contract](https://github.com/poli-page/api-contract)). The
