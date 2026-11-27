@@ -22,6 +22,6 @@ group :development, :test do
   gem "simplecov-lcov", "~> 0.8", require: false
   gem "steep", "~> 2.0", require: false
   gem "vcr", "~> 6.4"
-  gem "webmock", "~> 3.34"
+  gem "webmock", "~> 3.35"
   gem "yard", "~> 0.9.45", require: false
 end
